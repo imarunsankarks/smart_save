@@ -2242,10 +2242,12 @@
       });
 
       filtered.sort((a, b) => {
-        const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(`${a.date || '1970-01-01'}T12:00:00`).getTime();
-        const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(`${b.date || '1970-01-01'}T12:00:00`).getTime();
-        if (bUpdated !== aUpdated) return bUpdated - aUpdated;
-        return new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01');
+        const dateOrder = (b.date || '').localeCompare(a.date || '');
+        if (dateOrder !== 0) return dateOrder;
+
+        const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bUpdated - aUpdated;
       });
 
       const totalPages = Math.max(1, Math.ceil(filtered.length / TRANSACTION_PAGE_SIZE));
