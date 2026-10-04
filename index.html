@@ -780,6 +780,19 @@
       </div>
     </div>
 
+    <section id="pendingOthersCard" class="bg-white rounded-2xl p-5 border border-amber-200/80 shadow-xs mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Pending from Others</h3>
+          <p class="text-xs text-slate-500">Expense shares to be reimbursed</p>
+        </div>
+        <span id="pendingOthersTotal" class="text-sm font-bold text-amber-700">$0.00 pending</span>
+      </div>
+      <div id="pendingOthersList" class="divide-y divide-amber-100" aria-live="polite">
+        <p class="py-3 text-sm text-slate-500">No pending amounts.</p>
+      </div>
+    </section>
+
     <section id="monthlyChecklistCard" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <div>
@@ -1041,6 +1054,23 @@
           <div>
             <label for="formDate" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Date *</label>
             <input type="date" id="formDate" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
+          </div>
+        </div>
+
+        <div id="otherMembersSection" class="hidden rounded-xl border border-amber-200 bg-amber-50/0 p-3">
+          <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+            <input id="formOtherMembers" type="checkbox" class="h-4 w-4 accent-amber-600">
+            Other members are sharing this expense
+          </label>
+          <div id="otherMembersDetails" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div>
+              <label for="formOtherAmount" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Amount owed to you *</label>
+              <input type="number" id="formOtherAmount" step="0.01" min="0.01" placeholder="0.00" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div>
+              <label for="formOtherNote" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Note (Optional)</label>
+              <input type="text" id="formOtherNote" maxlength="160" placeholder="Who owes this and why?" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
           </div>
         </div>
 
@@ -1462,10 +1492,23 @@
         if (!Number.isFinite(Number(record.amount)) || Number(record.amount) <= 0) return false;
         if (!isValidDate(record.date) || !['EXPENSE', 'SAVING', 'PLANNED_SAVING'].includes(record.type)) return false;
         if (record.notes !== undefined && typeof record.notes !== 'string') return false;
+        if (record.otherAmount !== undefined && (record.type !== 'EXPENSE' || !Number.isFinite(Number(record.otherAmount)) || Number(record.otherAmount) <= 0 || Number(record.otherAmount) > Number(record.amount))) return false;
+        if (record.otherNote !== undefined && typeof record.otherNote !== 'string') return false;
+        if (record.reimbursementFor !== undefined && (record.type !== 'EXPENSE' || typeof record.reimbursementFor !== 'string')) return false;
         if (record.expectedDate !== undefined && record.expectedDate !== '' && !isValidDate(record.expectedDate)) return false;
         if (record.checklistItemId !== undefined && typeof record.checklistItemId !== 'string') return false;
         if (transactionIds.has(record.id)) return false;
         transactionIds.add(record.id);
+      }
+
+      const recordById = new Map(records.map(record => [record.id, record]));
+      const reimbursedIds = new Set();
+      for (const record of records) {
+        if (!record.reimbursementFor) continue;
+        const sourceRecord = recordById.get(record.reimbursementFor);
+        if (!sourceRecord || sourceRecord.type !== 'EXPENSE' || !sourceRecord.otherAmount || reimbursedIds.has(record.reimbursementFor)) return false;
+        if (Number(record.amount) !== Number(sourceRecord.otherAmount)) return false;
+        reimbursedIds.add(record.reimbursementFor);
       }
 
       const checklistIds = new Set();
@@ -1785,9 +1828,10 @@
       records.forEach(r => {
         const amt = parseFloat(r.amount) || 0;
         const fundSource = normalizeFundSource(r.fundSource);
+        const isReimbursement = Boolean(r.reimbursementFor);
 
         if (fundSource === 'AVAILABLE') {
-          availableBudgetImpact += amt;
+          availableBudgetImpact += isReimbursement ? -amt : amt;
         } else if (fundSource === 'SAVINGS') {
           savingsBudgetImpact += amt;
         } else if (fundSource === 'PLANNED_FUND') {
@@ -1805,8 +1849,8 @@
           countFutureSavings++;
           countSavings++;
         } else {
-          totalExpense += amt;
-          countExpense++;
+          totalExpense += isReimbursement ? -amt : amt;
+          if (!isReimbursement) countExpense++;
         }
       });
 
@@ -1854,8 +1898,9 @@
       const transactionRows = records.length ?
         records.map(record => {
           const category = getCategoryById(record.categoryId);
+          const isReimbursement = Boolean(record.reimbursementFor);
           const isSaving = record.type !== 'EXPENSE';
-          const typeLabel = record.type === 'PLANNED_SAVING' ? 'Planned Expense Saving' : isSaving ? 'Savings' : 'Expense';
+          const typeLabel = isReimbursement ? 'Reimbursement' : record.type === 'PLANNED_SAVING' ? 'Planned Expense Saving' : isSaving ? 'Savings' : 'Expense';
           return `
               <tr>
                 <td>${escapeHtml(record.date)}</td>
@@ -1866,7 +1911,7 @@
                 </td>
                 <td>${escapeHtml(category.name)}</td>
                 <td>${typeLabel}</td>
-                <td class="print-amount">${isSaving ? '+' : '-'}${formatCurrency(record.amount)}</td>
+                <td class="print-amount">${isSaving || isReimbursement ? '+' : '-'}${formatCurrency(record.amount)}</td>
               </tr>
             `;
         }).join('') :
@@ -2016,6 +2061,7 @@
       // 1. Donut Chart
       const catTotals = {};
       monthRecords.forEach(t => {
+        if (t.reimbursementFor) return;
         const cat = getCategoryById(t.categoryId);
         const amt = parseFloat(t.amount) || 0;
         if (!catTotals[cat.name]) {
@@ -2124,7 +2170,7 @@
           } else if (t.type === 'SAVING') {
             categoryMap[cat.name].futureSaving += amt;
           } else {
-            categoryMap[cat.name].expense += amt;
+            categoryMap[cat.name].expense += t.reimbursementFor ? -amt : amt;
           }
         });
 
@@ -2271,9 +2317,13 @@
 
       tableBody.innerHTML = pagedItems.map(item => {
         const cat = getCategoryById(item.categoryId);
+        const isReimbursement = Boolean(item.reimbursementFor);
+        const hasReimbursement = transactions.some(record => record.reimbursementFor === item.id);
         const isPlannedSaving = item.type === 'PLANNED_SAVING';
-        const isSaving = item.type !== 'EXPENSE';
-        const typeBadge = isPlannedSaving ?
+        const isSaving = item.type !== 'EXPENSE' && !isReimbursement;
+        const typeBadge = isReimbursement ?
+          `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700">Reimbursement</span>` :
+          isPlannedSaving ?
           `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700">
                <svg class="w-3 h-3 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                Planned Fund
@@ -2288,8 +2338,8 @@
                Expense
              </span>`;
 
-        const amountColor = isSaving ? 'text-emerald-600' : 'text-slate-900';
-        const amountPrefix = isSaving ? '+' : '-';
+        const amountColor = isSaving || isReimbursement ? 'text-emerald-600' : 'text-slate-900';
+        const amountPrefix = isSaving || isReimbursement ? '+' : '-';
 
         return `
           <tr class="hover:bg-slate-50/80 transition-colors group">
@@ -2315,17 +2365,100 @@
             </td>
             <td class="py-3.5 px-4 whitespace-nowrap text-center">
               <div class="flex items-center justify-center gap-1">
-                <button type="button" onclick="handleEditTransaction('${item.id}')" title="Edit" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                </button>
-                <button type="button" onclick="handleDeleteTransaction('${item.id}')" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
+                ${isReimbursement ? '<span class="text-[10px] text-slate-400">Auto entry</span>' : `
+                  ${hasReimbursement ? '' : `<button type="button" onclick="handleEditTransaction('${item.id}')" title="Edit" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  </button>`}
+                  <button type="button" onclick="handleDeleteTransaction('${item.id}')" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>`}
               </div>
             </td>
           </tr>
         `;
       }).join('');
+    }
+
+    function renderPendingOthers() {
+      const list = document.getElementById('pendingOthersList');
+      const total = document.getElementById('pendingOthersTotal');
+      const pending = transactions.filter(record =>
+        record.type === 'EXPENSE' && !record.reimbursementFor && Number(record.otherAmount) > 0 &&
+        !transactions.some(reimbursement => reimbursement.reimbursementFor === record.id)
+      ).sort((a, b) => {
+        const dateOrder = (b.date || '').localeCompare(a.date || '');
+        return dateOrder || (new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      });
+      const settled = transactions.filter(record => record.reimbursementFor).map(reimbursement => ({
+        reimbursement,
+        expense: transactions.find(record => record.id === reimbursement.reimbursementFor)
+      })).filter(item => item.expense);
+      const pendingTotal = pending.reduce((sum, record) => sum + Number(record.otherAmount), 0);
+      total.textContent = `${formatCurrency(pendingTotal)} pending`;
+
+      const pendingMarkup = pending.length ? pending.map(record =>
+        '<div class="flex flex-col sm:flex-row sm:items-center gap-3 py-3">' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-semibold text-slate-800">' + escapeHtml(record.description) + '</div>' +
+        '<div class="text-xs text-slate-500">' + (record.otherNote ? escapeHtml(record.otherNote) : 'Expense date: ' + escapeHtml(record.date)) + '</div>' +
+        '</div>' +
+        '<span class="text-sm font-bold text-amber-700">' + formatCurrency(record.otherAmount) + '</span>' +
+        '<label class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer whitespace-nowrap">' +
+        '<input type="checkbox" data-settle-expense="' + escapeHtml(record.id) + '" class="h-4 w-4 accent-emerald-600">Settled</label>' +
+        '</div>'
+      ).join('') : '<p class="py-3 text-sm text-slate-500">No pending amounts.</p>';
+      const settledMarkup = settled.map(({
+          expense,
+          reimbursement
+        }) =>
+        '<div class="flex flex-col sm:flex-row sm:items-center gap-3 py-2">' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-semibold text-slate-700">' + escapeHtml(expense.description) + '</div>' +
+        '<div class="text-xs text-slate-500">' + (expense.otherNote ? escapeHtml(expense.otherNote) : 'Expense date: ' + escapeHtml(expense.date)) + '</div>' +
+        '</div>' +
+        '<span class="text-sm font-semibold text-emerald-700">' + formatCurrency(reimbursement.amount) + ' settled</span>' +
+        '<button type="button" data-undo-reimbursement="' + escapeHtml(expense.id) + '" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium cursor-pointer" aria-label="Undo settlement for ' + escapeHtml(expense.description) + '">' +
+        '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4 4-4M5 10h9a5 5 0 010 10h-1"/></svg>Undo</button>' +
+        '</div>'
+      ).join('');
+      list.innerHTML = pendingMarkup + (settledMarkup ?
+        '<div class="border-t border-slate-100 mt-2 pt-3"><h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Settled</h4>' + settledMarkup + '</div>' : '');
+    }
+
+    function settleOtherShare(expenseId) {
+      const expense = transactions.find(record => record.id === expenseId && record.type === 'EXPENSE');
+      if (!expense || !(Number(expense.otherAmount) > 0) || transactions.some(record => record.reimbursementFor === expenseId)) return;
+
+      const date = new Date().toISOString().slice(0, 10);
+      transactions.push({
+        id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        description: `Reimbursement for ${expense.description}`,
+        amount: Number(expense.otherAmount),
+        date,
+        categoryId: expense.categoryId,
+        type: 'EXPENSE',
+        fundSource: 'AVAILABLE',
+        notes: expense.otherNote || '',
+        reimbursementFor: expense.id,
+        updatedAt: new Date().toISOString()
+      });
+      saveTransactionsToStorage();
+      const settlementMonth = date.substring(0, 7);
+      if (selectedMonthString !== settlementMonth) {
+        setMonth(settlementMonth);
+      } else {
+        renderDashboard();
+      }
+      showToast(`Reimbursement recorded: ${formatCurrency(expense.otherAmount)}`);
+    }
+
+    function undoOtherShare(expenseId) {
+      const reimbursement = transactions.find(record => record.reimbursementFor === expenseId);
+      if (!reimbursement) return;
+      transactions = transactions.filter(record => record.id !== reimbursement.id);
+      saveTransactionsToStorage();
+      renderDashboard();
+      showToast('Settlement undone; amount is pending again');
     }
 
     function renderDashboard() {
@@ -2334,6 +2467,7 @@
       updateMetricsUI(metrics);
       updateCharts(monthRecords);
       renderTransactionsTable(monthRecords);
+      renderPendingOthers();
       renderMonthlyChecklist();
       renderChecklistLinkOptions();
     }
@@ -2435,7 +2569,11 @@
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       document.getElementById('formFundSource').value = 'AVAILABLE';
+      document.getElementById('formOtherMembers').disabled = false;
+      document.getElementById('formOtherAmount').disabled = false;
+      document.getElementById('formOtherNote').disabled = false;
       updateTransactionTypeFields();
+      updateOtherMembersFields();
       renderChecklistLinkOptions();
 
       const today = new Date().toISOString().split('T')[0];
@@ -2463,6 +2601,9 @@
       document.getElementById('formNotes').value = item.notes || '';
       document.getElementById('formExpectedDate').value = item.expectedDate || '';
       document.getElementById('formFundSource').value = normalizeFundSource(item.fundSource);
+      document.getElementById('formOtherMembers').checked = Number(item.otherAmount) > 0;
+      document.getElementById('formOtherAmount').value = item.otherAmount || '';
+      document.getElementById('formOtherNote').value = item.otherNote || '';
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       renderChecklistLinkOptions(item.checklistItemId || '');
       document.getElementById('formChecklistItem').value = item.checklistItemId || '';
@@ -2472,14 +2613,20 @@
         r.checked = r.value === item.type;
       }
       updateTransactionTypeFields();
+      updateOtherMembersFields();
+      const isSettled = transactions.some(record => record.reimbursementFor === item.id);
+      ['formOtherMembers', 'formOtherAmount', 'formOtherNote'].forEach(fieldId => {
+        document.getElementById(fieldId).disabled = isSettled;
+      });
 
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('transactionModal').classList.remove('hidden');
     };
 
     window.handleDeleteTransaction = function(id) {
+      if (transactions.some(record => record.id === id && record.reimbursementFor)) return;
       openCustomConfirm('Delete Transaction', 'Are you sure you want to delete this transaction record?', () => {
-        transactions = transactions.filter(t => t.id !== id);
+        transactions = transactions.filter(t => t.id !== id && t.reimbursementFor !== id);
         saveTransactionsToStorage();
         renderDashboard();
         showToast('Transaction removed successfully');
@@ -2494,6 +2641,13 @@
       const selectedType = document.querySelector('input[name="transType"]:checked')?.value;
       document.getElementById('plannedSavingFields').classList.toggle('hidden', selectedType !== 'PLANNED_SAVING');
       document.getElementById('savingChecklistFields').classList.toggle('hidden', selectedType === 'EXPENSE');
+      document.getElementById('otherMembersSection').classList.toggle('hidden', selectedType !== 'EXPENSE');
+    }
+
+    function updateOtherMembersFields() {
+      const isChecked = document.getElementById('formOtherMembers').checked;
+      document.getElementById('otherMembersDetails').classList.toggle('hidden', !isChecked);
+      document.getElementById('formOtherAmount').required = isChecked;
     }
 
     function setMonth(yearMonthStr) {
@@ -2816,6 +2970,9 @@
         const type = typeElem ? typeElem.value : 'EXPENSE';
         const fundSource = normalizeFundSource(document.getElementById('formFundSource').value);
         const checklistItemId = type === 'EXPENSE' ? '' : document.getElementById('formChecklistItem').value;
+        const hasOtherMembers = type === 'EXPENSE' && document.getElementById('formOtherMembers').checked;
+        const otherAmount = parseFloat(document.getElementById('formOtherAmount').value);
+        const otherNote = document.getElementById('formOtherNote').value.trim();
 
         const errorBox = document.getElementById('formErrorMessage');
 
@@ -2826,6 +2983,11 @@
         }
         if (isNaN(amount) || amount <= 0) {
           errorBox.textContent = 'Please enter a valid amount greater than 0.';
+          errorBox.classList.remove('hidden');
+          return;
+        }
+        if (hasOtherMembers && (isNaN(otherAmount) || otherAmount <= 0 || otherAmount > amount)) {
+          errorBox.textContent = 'Enter an amount owed by others that is greater than 0 and no more than the expense amount.';
           errorBox.classList.remove('hidden');
           return;
         }
@@ -2849,6 +3011,8 @@
               type: type,
               fundSource,
               notes: notes,
+              otherAmount: hasOtherMembers ? otherAmount : undefined,
+              otherNote: hasOtherMembers ? otherNote : '',
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
               checklistItemId,
               updatedAt: new Date().toISOString()
@@ -2865,6 +3029,8 @@
             type: type,
             fundSource,
             notes: notes,
+            otherAmount: hasOtherMembers ? otherAmount : undefined,
+            otherNote: hasOtherMembers ? otherNote : '',
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
             checklistItemId,
             updatedAt: new Date().toISOString()
@@ -2882,6 +3048,19 @@
         saveTransactionsToStorage();
         closeTransactionModal();
         renderDashboard();
+      });
+
+      document.getElementById('formOtherMembers').addEventListener('change', updateOtherMembersFields);
+      document.getElementById('pendingOthersList').addEventListener('change', e => {
+        const checkbox = e.target.closest('[data-settle-expense]');
+        if (checkbox && checkbox.checked) settleOtherShare(checkbox.dataset.settleExpense);
+      });
+      document.getElementById('pendingOthersList').addEventListener('click', e => {
+        const undoButton = e.target.closest('[data-undo-reimbursement]');
+        if (undoButton) undoOtherShare(undoButton.dataset.undoReimbursement);
+      });
+      document.querySelectorAll('input[name="transType"]').forEach(radio => {
+        radio.addEventListener('change', updateTransactionTypeFields);
       });
 
       // Clear all local storage button
