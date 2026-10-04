@@ -786,62 +786,80 @@
           <h3 class="text-base font-bold text-slate-900">Monthly Checklist</h3>
           <p class="text-xs text-slate-500">Track recurring savings and planned expenses for this month</p>
         </div>
-        <span id="checklistProgress" class="inline-flex self-start sm:self-auto items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">0 of 0 complete</span>
+        <div class="flex items-center gap-2">
+          <span id="checklistProgress" class="inline-flex self-start sm:self-auto items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">0 of 0 complete</span>
+          <button id="toggleChecklistSectionBtn" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors cursor-pointer">
+            <span>Collapse</span>
+          </button>
+        </div>
       </div>
-      <form id="checklistItemForm" class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5 mb-4">
-        <input id="checklistItemName" type="text" maxlength="80" required placeholder="Add an item, e.g. SIP, RD, Car Insurance" class="min-w-0 w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        <label class="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer whitespace-nowrap">
-          <input id="checklistRepeatMonthly" type="checkbox" checked class="h-4 w-4 accent-emerald-600">
-          Repeat monthly
-        </label>
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add item
-        </button>
-      </form>
-      <div id="checklistItemsList" class="divide-y divide-slate-100" aria-live="polite"></div>
+      <div id="checklistSectionContent">
+        <form id="checklistItemForm" class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5 mb-4">
+          <input id="checklistItemName" type="text" maxlength="80" required placeholder="Add an item, e.g. SIP, RD, Car Insurance" class="min-w-0 w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <label class="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer whitespace-nowrap">
+            <input id="checklistRepeatMonthly" type="checkbox" checked class="h-4 w-4 accent-emerald-600">
+            Repeat monthly
+          </label>
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add item
+          </button>
+        </form>
+        <div id="checklistItemsList" class="divide-y divide-slate-100" aria-live="polite"></div>
+      </div>
     </section>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Donut Chart: Category Spending & Savings Breakdown -->
-      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-bold text-slate-900">Category Breakdown</h3>
-          <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded-md">This Month</span>
+    <div id="chartsSectionWrapper" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-8">
+      <div class="flex items-center justify-between gap-3 p-5 border-b border-slate-200/80">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Charts Overview</h3>
+          <p class="text-xs text-slate-500">Category mix and expense vs savings allocation</p>
         </div>
-        <div class="relative flex-1 min-h-[240px] flex items-center justify-center">
-          <canvas id="categoryChart"></canvas>
-          <div id="emptyCategoryChartMessage" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <p class="text-sm font-medium text-slate-500">No transactions recorded</p>
-            <p class="text-xs text-slate-400">Add an expense or saving to view distribution</p>
-          </div>
-        </div>
+        <button id="toggleChartsSectionBtn" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors cursor-pointer">
+          <span>Collapse</span>
+        </button>
       </div>
-
-      <!-- Monthly Trend / Ratio Bar Chart -->
-      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col lg:col-span-2">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <h3 class="text-base font-bold text-slate-900">Expense vs. Savings Distribution</h3>
-            <p class="text-xs text-slate-500">Comparison of capital allocation across categories</p>
+      <div id="chartsSectionContent" class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-5">
+        <!-- Donut Chart: Category Spending & Savings Breakdown -->
+        <div id="categoryBreakdownCard" class="bg-slate-50/0 rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-slate-900">Category Breakdown</h3>
+            <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded-md">This Month</span>
           </div>
-          <div class="flex items-center gap-3 text-xs font-semibold">
-            <span class="flex items-center gap-1.5 text-rose-600"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Expense</span>
-            <span class="flex items-center gap-1.5 text-emerald-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Savings</span>
-            <span class="flex items-center gap-1.5 text-sky-600"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Planned fund</span>
+          <div id="categoryChartContainer" class="relative flex-1 min-h-[240px] flex items-center justify-center">
+            <canvas id="categoryChart"></canvas>
+            <div id="emptyCategoryChartMessage" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+              <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <p class="text-sm font-medium text-slate-500">No transactions recorded</p>
+              <p class="text-xs text-slate-400">Add an expense or saving to view distribution</p>
+            </div>
           </div>
         </div>
-        <div class="relative flex-1 min-h-[240px] flex items-center justify-center">
-          <canvas id="typeComparisonChart"></canvas>
-          <div id="emptyBarChartMessage" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-            <p class="text-sm font-medium text-slate-500">Chart data will appear here</p>
+
+        <!-- Monthly Trend / Ratio Bar Chart -->
+        <div id="typeComparisonCard" class="bg-slate-50/0 rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col lg:col-span-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Expense vs. Savings Distribution</h3>
+              <p class="text-xs text-slate-500">Comparison of capital allocation across categories</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs font-semibold">
+              <span class="flex items-center gap-1.5 text-rose-600"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Expense</span>
+              <span class="flex items-center gap-1.5 text-emerald-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Savings</span>
+              <span class="flex items-center gap-1.5 text-sky-600"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Planned fund</span>
+            </div>
+          </div>
+          <div id="typeChartContainer" class="relative flex-1 min-h-[240px] flex items-center justify-center">
+            <canvas id="typeComparisonChart"></canvas>
+            <div id="emptyBarChartMessage" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+              <p class="text-sm font-medium text-slate-500">Chart data will appear here</p>
+            </div>
           </div>
         </div>
       </div>
@@ -917,8 +935,13 @@
       </div>
 
       <!-- Table Footer Summary -->
-      <div id="tableFooterSummary" class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div id="tableFooterSummary" class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
         <span id="showingCountText">Showing 0 transactions</span>
+        <div class="flex items-center gap-2">
+          <button id="prevPageBtn" type="button" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer" disabled>Previous</button>
+          <span id="pageNumberText" class="font-medium text-slate-600">Page 1</span>
+          <button id="nextPageBtn" type="button" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer" disabled>Next</button>
+        </div>
         <span class="font-medium text-slate-600">Saved securely in browser local storage</span>
       </div>
     </div>
@@ -1274,6 +1297,8 @@
     let categoryChartInstance = null;
     let typeChartInstance = null;
     let pendingConfirmAction = null;
+    const TRANSACTION_PAGE_SIZE = 20;
+    let transactionCurrentPage = 1;
 
     function loadStorage() {
       // 1. Categories
@@ -1815,7 +1840,11 @@
     }
 
     function printMonthlySummary() {
-      const records = getFilteredMonthTransactions().slice().sort((a, b) => a.date.localeCompare(b.date));
+      const records = getFilteredMonthTransactions().slice().sort((a, b) => {
+        const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(`${a.date || '1970-01-01'}T12:00:00`).getTime();
+        const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(`${b.date || '1970-01-01'}T12:00:00`).getTime();
+        return bUpdated - aUpdated;
+      });
       const metrics = calculateMetrics(records);
       const [year, month] = selectedMonthString.split('-').map(Number);
       const monthTitle = new Date(year, month - 1, 1).toLocaleDateString(undefined, {
@@ -2187,6 +2216,9 @@
       const tableBody = document.getElementById('transactionsTableBody');
       const emptyState = document.getElementById('noTransactionsState');
       const showingCountText = document.getElementById('showingCountText');
+      const pageNumberText = document.getElementById('pageNumberText');
+      const prevPageBtn = document.getElementById('prevPageBtn');
+      const nextPageBtn = document.getElementById('nextPageBtn');
 
       const searchInput = document.getElementById('searchInput');
       const filterType = document.getElementById('filterType');
@@ -2209,9 +2241,23 @@
         return matchSearch && matchType && matchCat;
       });
 
-      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      filtered.sort((a, b) => {
+        const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(`${a.date || '1970-01-01'}T12:00:00`).getTime();
+        const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(`${b.date || '1970-01-01'}T12:00:00`).getTime();
+        if (bUpdated !== aUpdated) return bUpdated - aUpdated;
+        return new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01');
+      });
 
-      showingCountText.textContent = `Showing ${filtered.length} of ${monthRecords.length} month transactions`;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / TRANSACTION_PAGE_SIZE));
+      if (transactionCurrentPage > totalPages) transactionCurrentPage = totalPages;
+      if (transactionCurrentPage < 1) transactionCurrentPage = 1;
+      const startIndex = (transactionCurrentPage - 1) * TRANSACTION_PAGE_SIZE;
+      const pagedItems = filtered.slice(startIndex, startIndex + TRANSACTION_PAGE_SIZE);
+
+      showingCountText.textContent = filtered.length === 0 ? 'Showing 0 transactions' : `Showing ${startIndex + 1}-${Math.min(startIndex + pagedItems.length, filtered.length)} of ${filtered.length} transactions`;
+      pageNumberText.textContent = `Page ${transactionCurrentPage} of ${totalPages}`;
+      prevPageBtn.disabled = transactionCurrentPage <= 1;
+      nextPageBtn.disabled = transactionCurrentPage >= totalPages;
 
       if (filtered.length === 0) {
         tableBody.innerHTML = '';
@@ -2221,7 +2267,7 @@
 
       emptyState.classList.add('hidden');
 
-      tableBody.innerHTML = filtered.map(item => {
+      tableBody.innerHTML = pagedItems.map(item => {
         const cat = getCategoryById(item.categoryId);
         const isPlannedSaving = item.type === 'PLANNED_SAVING';
         const isSaving = item.type !== 'EXPENSE';
@@ -2288,6 +2334,26 @@
       renderTransactionsTable(monthRecords);
       renderMonthlyChecklist();
       renderChecklistLinkOptions();
+    }
+
+    function bindCollapsibleSections() {
+      const checklistToggle = document.getElementById('toggleChecklistSectionBtn');
+      const checklistContent = document.getElementById('checklistSectionContent');
+      if (checklistToggle && checklistContent) {
+        checklistToggle.addEventListener('click', () => {
+          const isHidden = checklistContent.classList.toggle('hidden');
+          checklistToggle.querySelector('span').textContent = isHidden ? 'Expand' : 'Collapse';
+        });
+      }
+
+      const chartsToggle = document.getElementById('toggleChartsSectionBtn');
+      const chartsContent = document.getElementById('chartsSectionContent');
+      if (chartsToggle && chartsContent) {
+        chartsToggle.addEventListener('click', () => {
+          const isHidden = chartsContent.classList.toggle('hidden');
+          chartsToggle.querySelector('span').textContent = isHidden ? 'Expand' : 'Collapse';
+        });
+      }
     }
 
     function isChecklistItemScheduled(item, monthString) {
@@ -2461,6 +2527,7 @@
 
       // Load state from local storage
       loadStorage();
+      bindCollapsibleSections();
       renderCategoryDropdowns();
       renderDashboard();
 
@@ -2557,13 +2624,42 @@
 
       // Filter and search live updates
       document.getElementById('searchInput').addEventListener('input', () => {
+        transactionCurrentPage = 1;
         renderTransactionsTable(getFilteredMonthTransactions());
       });
       document.getElementById('filterType').addEventListener('change', () => {
+        transactionCurrentPage = 1;
         renderTransactionsTable(getFilteredMonthTransactions());
       });
       document.getElementById('filterCategory').addEventListener('change', () => {
+        transactionCurrentPage = 1;
         renderTransactionsTable(getFilteredMonthTransactions());
+      });
+      document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (transactionCurrentPage > 1) {
+          transactionCurrentPage -= 1;
+          renderTransactionsTable(getFilteredMonthTransactions());
+        }
+      });
+      document.getElementById('nextPageBtn').addEventListener('click', () => {
+        const totalRows = getFilteredMonthTransactions().filter(item => {
+          const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+          const typeFilter = document.getElementById('filterType').value;
+          const categoryFilter = document.getElementById('filterCategory').value;
+          const matchSearch = !searchQuery ||
+            (item.description && item.description.toLowerCase().includes(searchQuery)) ||
+            (item.notes && item.notes.toLowerCase().includes(searchQuery)) ||
+            (item.expectedDate && item.expectedDate.toLowerCase().includes(searchQuery));
+          const matchType = typeFilter === 'ALL' ||
+            (typeFilter === 'SAVINGS' ? item.type !== 'EXPENSE' : item.type === typeFilter);
+          const matchCat = categoryFilter === 'ALL' || item.categoryId === categoryFilter;
+          return matchSearch && matchType && matchCat;
+        }).length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / TRANSACTION_PAGE_SIZE));
+        if (transactionCurrentPage < totalPages) {
+          transactionCurrentPage += 1;
+          renderTransactionsTable(getFilteredMonthTransactions());
+        }
       });
       document.getElementById('checklistItemForm').addEventListener('submit', e => {
         e.preventDefault();
@@ -2752,7 +2848,8 @@
               fundSource,
               notes: notes,
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
-              checklistItemId
+              checklistItemId,
+              updatedAt: new Date().toISOString()
             };
             showToast('Transaction updated');
           }
@@ -2767,7 +2864,8 @@
             fundSource,
             notes: notes,
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
-            checklistItemId
+            checklistItemId,
+            updatedAt: new Date().toISOString()
           };
           transactions.push(newRecord);
           showToast('Transaction added');
