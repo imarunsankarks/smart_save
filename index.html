@@ -582,7 +582,7 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6 sm:py-6 w-full flex-1">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 sm:pt-6 w-full flex-1">
     <!-- Top Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
@@ -595,12 +595,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
           </svg>
           <span>Manage Categories</span>
-        </button>
-        <button id="openAddModalBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Add Transaction</span>
         </button>
         <div id="moreActionsMenu" class="relative">
           <button id="moreActionsBtn" type="button" aria-label="More options" aria-haspopup="menu" aria-expanded="false" aria-controls="moreActionsDropdown" class="w-10 h-10 inline-flex items-center justify-center rounded-xl text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer" title="More options">
@@ -636,6 +630,13 @@
       </div>
     </div>
 
+    <!-- Main Tabs -->
+    <div class="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 mb-6" role="tablist" aria-label="Dashboard sections">
+      <button id="tabSummaryBtn" type="button" role="tab" aria-selected="true" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-slate-900 shadow-xs transition-colors cursor-pointer">Summary</button>
+      <button id="tabTransactionsBtn" type="button" role="tab" aria-selected="false" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer">Transactions</button>
+    </div>
+
+    <div id="summaryTabPanel" role="tabpanel" aria-labelledby="tabSummaryBtn">
     <!-- Monthly Income / Available Amount Direct Input Banner -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-5 mb-6 text-white shadow-lg border border-slate-700/50 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
       <div class="flex items-center gap-3.5">
@@ -780,6 +781,31 @@
       </div>
     </div>
 
+    <!-- Other Balances (display only — excluded from calculations) -->
+    <section id="otherBalancesCard" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Other Balances</h3>
+          <p class="text-xs text-slate-500">Money in other accounts — display only, not included in monthly calculations</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="otherBalancesTotal" class="text-sm font-bold text-slate-700">$0.00 total</span>
+          <button id="toggleOtherBalancesSectionBtn" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors cursor-pointer">
+            <span>Collapse</span>
+          </button>
+        </div>
+      </div>
+      <div id="otherBalancesSectionContent">
+      <form id="otherBalanceForm" class="flex flex-wrap items-center gap-2.5">
+        <input id="otherBalanceName" type="text" maxlength="60" required placeholder="Account name, e.g. HDFC Savings, Wallet" class="flex-1 min-w-[160px] px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <input id="otherBalanceAmount" type="number" step="0.01" min="0" required placeholder="0.00" class="w-32 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <button type="submit" id="otherBalanceSubmitBtn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer">Add</button>
+        <button type="button" id="otherBalanceCancelBtn" class="hidden px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition-colors cursor-pointer">Cancel</button>
+      </form>
+      <div id="otherBalancesList" class="divide-y divide-slate-100" aria-live="polite"></div>
+      </div>
+    </section>
+
     <section id="pendingOthersCard" class="bg-white rounded-2xl p-5 border border-amber-200/80 shadow-xs mb-6">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
@@ -878,6 +904,9 @@
       </div>
     </div>
 
+    </div>
+
+    <div id="transactionsTabPanel" role="tabpanel" aria-labelledby="tabTransactionsBtn" class="hidden">
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
       <!-- Filter Bar -->
       <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/50">
@@ -958,7 +987,15 @@
         <span class="font-medium text-slate-600">Saved securely in browser local storage</span>
       </div>
     </div>
+    </div>
   </main>
+
+  <button id="openAddModalBtn" type="button" title="Add Transaction" aria-label="Add Transaction" class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-5 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-600/30 transition-all active:scale-95 cursor-pointer">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    <span class="hidden sm:inline">Add Transaction</span>
+  </button>
 
   <section id="printSummary" aria-label="Monthly expense and savings summary"></section>
 
@@ -1025,6 +1062,13 @@
           <select id="formChecklistItem" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
             <option value="">No checklist item</option>
           </select>
+          <div class="mt-3">
+            <label for="formOtherBalance" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Add to Other Balance (Optional)</label>
+            <select id="formOtherBalance" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <option value="">No balance selected</option>
+            </select>
+            <p class="text-xs text-slate-500 mt-1">The amount will be added to the selected balance.</p>
+          </div>
         </div>
 
         <div>
@@ -1062,14 +1106,21 @@
             <input id="formOtherMembers" type="checkbox" class="h-4 w-4 accent-amber-600">
             Other members are sharing this expense
           </label>
-          <div id="otherMembersDetails" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-            <div>
-              <label for="formOtherAmount" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Amount owed to you *</label>
-              <input type="number" id="formOtherAmount" step="0.01" min="0.01" placeholder="0.00" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <div id="otherMembersDetails" class="hidden mt-3">
+            <div class="flex items-center justify-between mb-1">
+              <span class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Members sharing *</span>
+              <button type="button" id="addOtherMemberBtn" class="text-xs font-medium text-amber-700 hover:text-amber-800 hover:underline cursor-pointer">+ Add member</button>
             </div>
-            <div>
-              <label for="formOtherNote" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Note (Optional)</label>
-              <input type="text" id="formOtherNote" maxlength="160" placeholder="Who owes this and why?" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <div id="otherMembersList" class="space-y-2"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div>
+                <span class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Total owed to you</span>
+                <div id="otherMembersTotal" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-amber-700">—</div>
+              </div>
+              <div>
+                <label for="formOtherNote" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Note (Optional)</label>
+                <input type="text" id="formOtherNote" maxlength="160" placeholder="Who owes this and why?" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
             </div>
           </div>
         </div>
@@ -1315,6 +1366,7 @@
     const STATE_KEY_INCOME = 'smartsave_monthly_income_v3';
     const STATE_KEY_CHECKLIST_ITEMS = 'smartsave_checklist_items_v1';
     const STATE_KEY_CHECKLIST_STATUS = 'smartsave_checklist_status_v1';
+    const STATE_KEY_OTHER_BALANCES = 'smartsave_other_balances_v1';
 
     // Global application state
     let transactions = [];
@@ -1322,6 +1374,8 @@
     let monthlyIncomes = {}; // { 'YYYY-MM': number }
     let checklistItems = [];
     let checklistStatuses = {};
+    let otherBalances = [];
+    let editingBalanceId = '';
     let currentCurrency = '$';
     let selectedMonthString = ''; // 'YYYY-MM'
     let categoryChartInstance = null;
@@ -1401,6 +1455,12 @@
       } catch (e) {
         checklistStatuses = {};
       }
+      try {
+        const storedBalances = JSON.parse(localStorage.getItem(STATE_KEY_OTHER_BALANCES) || '[]');
+        otherBalances = Array.isArray(storedBalances) ? storedBalances : [];
+      } catch (e) {
+        otherBalances = [];
+      }
     }
 
     function saveTransactionsToStorage() {
@@ -1427,6 +1487,10 @@
       localStorage.setItem(STATE_KEY_CHECKLIST_STATUS, JSON.stringify(checklistStatuses));
     }
 
+    function saveOtherBalancesToStorage() {
+      localStorage.setItem(STATE_KEY_OTHER_BALANCES, JSON.stringify(otherBalances));
+    }
+
     function exportAppData() {
       const backup = {
         format: 'smartsave-backup',
@@ -1438,7 +1502,8 @@
           monthlyIncomes,
           currency: currentCurrency,
           checklistItems,
-          checklistStatuses
+          checklistStatuses,
+          otherBalances
         }
       };
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -1464,11 +1529,13 @@
         monthlyIncomes: incomes,
         currency,
         checklistItems: savedChecklistItems = [],
-        checklistStatuses: savedChecklistStatuses = {}
+        checklistStatuses: savedChecklistStatuses = {},
+        otherBalances: savedBalances = []
       } = backup.data;
       const validCurrencies = ['$', '₹', '€', '£', '¥', 'C$', 'A$'];
       if (!Array.isArray(records) || !Array.isArray(savedCategories) || savedCategories.length === 0) return false;
       if (!Array.isArray(savedChecklistItems) || !savedChecklistStatuses || typeof savedChecklistStatuses !== 'object' || Array.isArray(savedChecklistStatuses)) return false;
+      if (!Array.isArray(savedBalances) || savedBalances.some(entry => !entry || typeof entry.id !== 'string' || typeof entry.name !== 'string' || !entry.name.trim() || !Number.isFinite(Number(entry.amount)) || Number(entry.amount) < 0)) return false;
       if (!incomes || typeof incomes !== 'object' || Array.isArray(incomes)) return false;
       if (!validCurrencies.includes(currency)) return false;
       const isValidDate = value => typeof value === 'string' &&
@@ -1494,21 +1561,34 @@
         if (record.notes !== undefined && typeof record.notes !== 'string') return false;
         if (record.otherAmount !== undefined && (record.type !== 'EXPENSE' || !Number.isFinite(Number(record.otherAmount)) || Number(record.otherAmount) <= 0 || Number(record.otherAmount) > Number(record.amount))) return false;
         if (record.otherNote !== undefined && typeof record.otherNote !== 'string') return false;
+        if (record.otherMembers !== undefined && (!Array.isArray(record.otherMembers) || record.otherMembers.some(member => !member || typeof member.name !== 'string' || !Number.isFinite(Number(member.amount)) || Number(member.amount) <= 0))) return false;
         if (record.reimbursementFor !== undefined && (record.type !== 'EXPENSE' || typeof record.reimbursementFor !== 'string')) return false;
+        if (record.reimbursementMemberIndex !== undefined && (!record.reimbursementFor || !Number.isInteger(record.reimbursementMemberIndex) || record.reimbursementMemberIndex < 0)) return false;
         if (record.expectedDate !== undefined && record.expectedDate !== '' && !isValidDate(record.expectedDate)) return false;
         if (record.checklistItemId !== undefined && typeof record.checklistItemId !== 'string') return false;
+        if (record.otherBalanceId !== undefined && typeof record.otherBalanceId !== 'string') return false;
         if (transactionIds.has(record.id)) return false;
         transactionIds.add(record.id);
       }
 
       const recordById = new Map(records.map(record => [record.id, record]));
-      const reimbursedIds = new Set();
+      const reimbursedKeys = new Set();
       for (const record of records) {
         if (!record.reimbursementFor) continue;
         const sourceRecord = recordById.get(record.reimbursementFor);
-        if (!sourceRecord || sourceRecord.type !== 'EXPENSE' || !sourceRecord.otherAmount || reimbursedIds.has(record.reimbursementFor)) return false;
-        if (Number(record.amount) !== Number(sourceRecord.otherAmount)) return false;
-        reimbursedIds.add(record.reimbursementFor);
+        if (!sourceRecord || sourceRecord.type !== 'EXPENSE' || !sourceRecord.otherAmount) return false;
+        if (record.reimbursementMemberIndex === undefined) {
+          if (reimbursedKeys.has(record.reimbursementFor + ':*')) return false;
+          if (Number(record.amount) !== Number(sourceRecord.otherAmount)) return false;
+          reimbursedKeys.add(record.reimbursementFor + ':*');
+        } else {
+          const memberIndex = record.reimbursementMemberIndex;
+          const shareKey = record.reimbursementFor + ':' + memberIndex;
+          if (!Number.isInteger(memberIndex) || memberIndex < 0 || !Array.isArray(sourceRecord.otherMembers) || !sourceRecord.otherMembers[memberIndex]) return false;
+          if (reimbursedKeys.has(shareKey) || reimbursedKeys.has(record.reimbursementFor + ':*')) return false;
+          if (Number(record.amount) !== Number(sourceRecord.otherMembers[memberIndex].amount)) return false;
+          reimbursedKeys.add(shareKey);
+        }
       }
 
       const checklistIds = new Set();
@@ -1538,13 +1618,15 @@
       } = backup.data;
       const importedChecklistItems = backup.data.checklistItems || [];
       const importedChecklistStatuses = backup.data.checklistStatuses || {};
+      const importedBalances = backup.data.otherBalances || [];
       const values = {
         [STATE_KEY_TRANSACTIONS]: JSON.stringify(importedTransactions),
         [STATE_KEY_CATEGORIES]: JSON.stringify(importedCategories),
         [STATE_KEY_INCOME]: JSON.stringify(importedIncomes),
         [STATE_KEY_CURRENCY]: currency,
         [STATE_KEY_CHECKLIST_ITEMS]: JSON.stringify(importedChecklistItems),
-        [STATE_KEY_CHECKLIST_STATUS]: JSON.stringify(importedChecklistStatuses)
+        [STATE_KEY_CHECKLIST_STATUS]: JSON.stringify(importedChecklistStatuses),
+        [STATE_KEY_OTHER_BALANCES]: JSON.stringify(importedBalances)
       };
       const previousValues = Object.fromEntries(Object.keys(values).map(key => [key, localStorage.getItem(key)]));
 
@@ -1567,6 +1649,7 @@
       monthlyIncomes = importedIncomes;
       checklistItems = importedChecklistItems;
       checklistStatuses = importedChecklistStatuses;
+      otherBalances = importedBalances;
       currentCurrency = currency;
       document.getElementById('currencySelector').value = currentCurrency;
       renderCategoryDropdowns();
@@ -1858,7 +1941,7 @@
       const totalAvailable = monthIncome + carryForward.savings + carryForward.planned + carryForward.nonAllocated;
       const futureSavingsBalance = carryForward.savings + futureSavings - savingsBudgetImpact;
       const plannedSavingsBalance = carryForward.planned + plannedSavings - plannedBudgetImpact;
-      const nonAllocated = totalAvailable - availableBudgetImpact;
+      const nonAllocated = monthIncome + carryForward.nonAllocated - availableBudgetImpact;
 
       return {
         totalAvailable,
@@ -2379,32 +2462,76 @@
       }).join('');
     }
 
+    function getExpenseShares(expense) {
+      if (Array.isArray(expense.otherMembers) && expense.otherMembers.length) {
+        return expense.otherMembers.map((member, index) => ({
+          index,
+          name: member.name || 'Member ' + (index + 1),
+          amount: Number(member.amount)
+        }));
+      }
+      return [{
+        index: -1,
+        name: '',
+        amount: Number(expense.otherAmount)
+      }];
+    }
+
+    function getSettledShareIndexes(expense) {
+      const settled = new Set();
+      transactions.forEach(record => {
+        if (record.reimbursementFor !== expense.id) return;
+        if (record.reimbursementMemberIndex === undefined) {
+          getExpenseShares(expense).forEach(share => settled.add(share.index));
+        } else {
+          settled.add(record.reimbursementMemberIndex);
+        }
+      });
+      return settled;
+    }
+
+    function getShareMemberName(expense, memberIndex) {
+      const share = getExpenseShares(expense).find(s => s.index === memberIndex);
+      return share && share.name ? share.name : '';
+    }
+
     function renderPendingOthers() {
       const list = document.getElementById('pendingOthersList');
       const total = document.getElementById('pendingOthersTotal');
-      const pending = transactions.filter(record =>
+      const pendingShares = [];
+      transactions.filter(record =>
         record.type === 'EXPENSE' && !record.reimbursementFor && Number(record.otherAmount) > 0 &&
-        !transactions.some(reimbursement => reimbursement.reimbursementFor === record.id)
+        (record.date || '').substring(0, 7) === selectedMonthString
       ).sort((a, b) => {
         const dateOrder = (b.date || '').localeCompare(a.date || '');
         return dateOrder || (new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      }).forEach(record => {
+        const settledIndexes = getSettledShareIndexes(record);
+        getExpenseShares(record).forEach(share => {
+          if (!settledIndexes.has(share.index)) pendingShares.push({ expense: record, share });
+        });
       });
-      const settled = transactions.filter(record => record.reimbursementFor).map(reimbursement => ({
+      const settled = transactions.filter(record =>
+        record.reimbursementFor && (record.date || '').substring(0, 7) === selectedMonthString
+      ).map(reimbursement => ({
         reimbursement,
         expense: transactions.find(record => record.id === reimbursement.reimbursementFor)
       })).filter(item => item.expense);
-      const pendingTotal = pending.reduce((sum, record) => sum + Number(record.otherAmount), 0);
+      const pendingTotal = pendingShares.reduce((sum, item) => sum + item.share.amount, 0);
       total.textContent = `${formatCurrency(pendingTotal)} pending`;
 
-      const pendingMarkup = pending.length ? pending.map(record =>
+      const pendingMarkup = pendingShares.length ? pendingShares.map(({
+          expense,
+          share
+        }) =>
         '<div class="flex flex-col sm:flex-row sm:items-center gap-3 py-3">' +
         '<div class="min-w-0 flex-1">' +
-        '<div class="text-sm font-semibold text-slate-800">' + escapeHtml(record.description) + '</div>' +
-        '<div class="text-xs text-slate-500">' + (record.otherNote ? escapeHtml(record.otherNote) : 'Expense date: ' + escapeHtml(record.date)) + '</div>' +
+        '<div class="text-sm font-semibold text-slate-800">' + escapeHtml(expense.description) + '</div>' +
+        '<div class="text-xs text-slate-500">' + (share.name ? 'Owes you: ' + escapeHtml(share.name) : escapeHtml(describeOtherShare(expense))) + '</div>' +
         '</div>' +
-        '<span class="text-sm font-bold text-amber-700">' + formatCurrency(record.otherAmount) + '</span>' +
+        '<span class="text-sm font-bold text-amber-700">' + formatCurrency(share.amount) + '</span>' +
         '<label class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer whitespace-nowrap">' +
-        '<input type="checkbox" data-settle-expense="' + escapeHtml(record.id) + '" class="h-4 w-4 accent-emerald-600">Settled</label>' +
+        '<input type="checkbox" data-settle-expense="' + escapeHtml(expense.id) + '" data-settle-member="' + share.index + '" class="h-4 w-4 accent-emerald-600">Settled</label>' +
         '</div>'
       ).join('') : '<p class="py-3 text-sm text-slate-500">No pending amounts.</p>';
       const settledMarkup = settled.map(({
@@ -2414,10 +2541,12 @@
         '<div class="flex flex-col sm:flex-row sm:items-center gap-3 py-2">' +
         '<div class="min-w-0 flex-1">' +
         '<div class="text-sm font-semibold text-slate-700">' + escapeHtml(expense.description) + '</div>' +
-        '<div class="text-xs text-slate-500">' + (expense.otherNote ? escapeHtml(expense.otherNote) : 'Expense date: ' + escapeHtml(expense.date)) + '</div>' +
+        '<div class="text-xs text-slate-500">' + (reimbursement.reimbursementMemberIndex !== undefined ?
+          'Settled by: ' + escapeHtml(getShareMemberName(expense, reimbursement.reimbursementMemberIndex) || 'Member') :
+          escapeHtml(describeOtherShare(expense))) + '</div>' +
         '</div>' +
         '<span class="text-sm font-semibold text-emerald-700">' + formatCurrency(reimbursement.amount) + ' settled</span>' +
-        '<button type="button" data-undo-reimbursement="' + escapeHtml(expense.id) + '" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium cursor-pointer" aria-label="Undo settlement for ' + escapeHtml(expense.description) + '">' +
+        '<button type="button" data-undo-reimbursement="' + escapeHtml(reimbursement.id) + '" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium cursor-pointer" aria-label="Undo settlement for ' + escapeHtml(expense.description) + '">' +
         '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4 4-4M5 10h9a5 5 0 010 10h-1"/></svg>Undo</button>' +
         '</div>'
       ).join('');
@@ -2425,21 +2554,24 @@
         '<div class="border-t border-slate-100 mt-2 pt-3"><h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Settled</h4>' + settledMarkup + '</div>' : '');
     }
 
-    function settleOtherShare(expenseId) {
+    function settleOtherShare(expenseId, memberIndex) {
       const expense = transactions.find(record => record.id === expenseId && record.type === 'EXPENSE');
-      if (!expense || !(Number(expense.otherAmount) > 0) || transactions.some(record => record.reimbursementFor === expenseId)) return;
+      if (!expense || !(Number(expense.otherAmount) > 0)) return;
+      const share = getExpenseShares(expense).find(s => s.index === memberIndex);
+      if (!share || getSettledShareIndexes(expense).has(memberIndex)) return;
 
       const date = new Date().toISOString().slice(0, 10);
       transactions.push({
         id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-        description: `Reimbursement for ${expense.description}`,
-        amount: Number(expense.otherAmount),
+        description: share.name ? `Reimbursement from ${share.name} for ${expense.description}` : `Reimbursement for ${expense.description}`,
+        amount: share.amount,
         date,
         categoryId: expense.categoryId,
         type: 'EXPENSE',
         fundSource: 'AVAILABLE',
         notes: expense.otherNote || '',
         reimbursementFor: expense.id,
+        reimbursementMemberIndex: memberIndex >= 0 ? memberIndex : undefined,
         updatedAt: new Date().toISOString()
       });
       saveTransactionsToStorage();
@@ -2449,11 +2581,11 @@
       } else {
         renderDashboard();
       }
-      showToast(`Reimbursement recorded: ${formatCurrency(expense.otherAmount)}`);
+      showToast(`Reimbursement recorded: ${formatCurrency(share.amount)}`);
     }
 
-    function undoOtherShare(expenseId) {
-      const reimbursement = transactions.find(record => record.reimbursementFor === expenseId);
+    function undoOtherShare(reimbursementId) {
+      const reimbursement = transactions.find(record => record.id === reimbursementId && record.reimbursementFor);
       if (!reimbursement) return;
       transactions = transactions.filter(record => record.id !== reimbursement.id);
       saveTransactionsToStorage();
@@ -2470,6 +2602,56 @@
       renderPendingOthers();
       renderMonthlyChecklist();
       renderChecklistLinkOptions();
+      renderOtherBalances();
+    }
+
+    function renderOtherBalances() {
+      const list = document.getElementById('otherBalancesList');
+      const totalEl = document.getElementById('otherBalancesTotal');
+      const total = otherBalances.reduce((sum, entry) => sum + Number(entry.amount), 0);
+      totalEl.textContent = `${formatCurrency(total)} total`;
+      renderOtherBalanceOptions();
+      list.innerHTML = otherBalances.length ? otherBalances.map(entry =>
+        '<div class="flex items-center gap-3 py-2.5">' +
+        '<span class="min-w-0 flex-1 text-sm font-medium text-slate-800 truncate">' + escapeHtml(entry.name) + '</span>' +
+        '<span class="text-sm font-bold text-slate-700 whitespace-nowrap">' + formatCurrency(entry.amount) + '</span>' +
+        '<button type="button" data-balance-edit="' + escapeHtml(entry.id) + '" title="Edit" aria-label="Edit ' + escapeHtml(entry.name) + '" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>' +
+        '</button>' +
+        '<button type="button" data-balance-delete="' + escapeHtml(entry.id) + '" title="Remove" aria-label="Remove ' + escapeHtml(entry.name) + '" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' +
+        '</button>' +
+        '</div>'
+      ).join('') : '<p class="py-3 text-sm text-slate-500">No balances added yet.</p>';
+    }
+
+    function resetOtherBalanceForm() {
+      editingBalanceId = '';
+      document.getElementById('otherBalanceForm').reset();
+      document.getElementById('otherBalanceSubmitBtn').textContent = 'Add';
+      document.getElementById('otherBalanceCancelBtn').classList.add('hidden');
+    }
+
+    function renderOtherBalanceOptions(selectedId) {
+      const select = document.getElementById('formOtherBalance');
+      if (!select) return;
+      const target = selectedId !== undefined ? selectedId : select.value;
+      select.innerHTML = '<option value="">No balance selected</option>' + otherBalances.map(entry =>
+        `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)} (${formatCurrency(entry.amount)})</option>`
+      ).join('');
+      if (otherBalances.some(entry => entry.id === target)) select.value = target;
+    }
+
+    function applyBalanceAddition(record) {
+      if (!record || !record.otherBalanceId) return;
+      const entry = otherBalances.find(b => b.id === record.otherBalanceId);
+      if (entry) entry.amount = Math.round((Number(entry.amount) + Number(record.amount)) * 100) / 100;
+    }
+
+    function revertBalanceAddition(record) {
+      if (!record || !record.otherBalanceId) return;
+      const entry = otherBalances.find(b => b.id === record.otherBalanceId);
+      if (entry) entry.amount = Math.round((Number(entry.amount) - Number(record.amount)) * 100) / 100;
     }
 
     function bindCollapsibleSections() {
@@ -2479,6 +2661,15 @@
         checklistToggle.addEventListener('click', () => {
           const isHidden = checklistContent.classList.toggle('hidden');
           checklistToggle.querySelector('span').textContent = isHidden ? 'Expand' : 'Collapse';
+        });
+      }
+
+      const balancesToggle = document.getElementById('toggleOtherBalancesSectionBtn');
+      const balancesContent = document.getElementById('otherBalancesSectionContent');
+      if (balancesToggle && balancesContent) {
+        balancesToggle.addEventListener('click', () => {
+          const isHidden = balancesContent.classList.toggle('hidden');
+          balancesToggle.querySelector('span').textContent = isHidden ? 'Expand' : 'Collapse';
         });
       }
 
@@ -2569,12 +2760,12 @@
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       document.getElementById('formFundSource').value = 'AVAILABLE';
-      document.getElementById('formOtherMembers').disabled = false;
-      document.getElementById('formOtherAmount').disabled = false;
-      document.getElementById('formOtherNote').disabled = false;
+      renderOtherMemberRows();
+      setOtherMembersDisabled(false);
       updateTransactionTypeFields();
       updateOtherMembersFields();
       renderChecklistLinkOptions();
+      renderOtherBalanceOptions('');
 
       const today = new Date().toISOString().split('T')[0];
       if (defaultDate) {
@@ -2602,11 +2793,18 @@
       document.getElementById('formExpectedDate').value = item.expectedDate || '';
       document.getElementById('formFundSource').value = normalizeFundSource(item.fundSource);
       document.getElementById('formOtherMembers').checked = Number(item.otherAmount) > 0;
-      document.getElementById('formOtherAmount').value = item.otherAmount || '';
+      const otherMembers = Array.isArray(item.otherMembers) && item.otherMembers.length ?
+        item.otherMembers :
+        (Number(item.otherAmount) > 0 ? [{
+          name: '',
+          amount: item.otherAmount
+        }] : []);
+      renderOtherMemberRows(otherMembers);
       document.getElementById('formOtherNote').value = item.otherNote || '';
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       renderChecklistLinkOptions(item.checklistItemId || '');
       document.getElementById('formChecklistItem').value = item.checklistItemId || '';
+      renderOtherBalanceOptions(item.otherBalanceId || '');
 
       const radios = document.getElementsByName('transType');
       for (const r of radios) {
@@ -2615,9 +2813,7 @@
       updateTransactionTypeFields();
       updateOtherMembersFields();
       const isSettled = transactions.some(record => record.reimbursementFor === item.id);
-      ['formOtherMembers', 'formOtherAmount', 'formOtherNote'].forEach(fieldId => {
-        document.getElementById(fieldId).disabled = isSettled;
-      });
+      setOtherMembersDisabled(isSettled);
 
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('transactionModal').classList.remove('hidden');
@@ -2626,7 +2822,10 @@
     window.handleDeleteTransaction = function(id) {
       if (transactions.some(record => record.id === id && record.reimbursementFor)) return;
       openCustomConfirm('Delete Transaction', 'Are you sure you want to delete this transaction record?', () => {
+        const removedRecords = transactions.filter(t => t.id === id || t.reimbursementFor === id);
+        removedRecords.forEach(revertBalanceAddition);
         transactions = transactions.filter(t => t.id !== id && t.reimbursementFor !== id);
+        if (removedRecords.some(r => r.otherBalanceId)) saveOtherBalancesToStorage();
         saveTransactionsToStorage();
         renderDashboard();
         showToast('Transaction removed successfully');
@@ -2647,7 +2846,95 @@
     function updateOtherMembersFields() {
       const isChecked = document.getElementById('formOtherMembers').checked;
       document.getElementById('otherMembersDetails').classList.toggle('hidden', !isChecked);
-      document.getElementById('formOtherAmount').required = isChecked;
+      if (isChecked && !document.querySelector('#otherMembersList .other-member-row')) {
+        addOtherMemberRow();
+      }
+    }
+
+    function createOtherMemberRow(member = {}) {
+      const row = document.createElement('div');
+      row.className = 'other-member-row flex items-center gap-2';
+      row.innerHTML =
+        '<input type="text" maxlength="60" placeholder="Member name" class="other-member-name flex-1 min-w-0 px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">' +
+        '<input type="number" step="0.01" min="0.01" placeholder="0.00" class="other-member-amount w-28 shrink-0 px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">' +
+        '<button type="button" title="Remove member" class="other-member-remove shrink-0 p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+        '</button>';
+      row.querySelector('.other-member-name').value = member.name || '';
+      row.querySelector('.other-member-amount').value = Number(member.amount) > 0 ? member.amount : '';
+      return row;
+    }
+
+    function addOtherMemberRow(member = {}) {
+      document.getElementById('otherMembersList').appendChild(createOtherMemberRow(member));
+      updateOtherMemberRemoveButtons();
+      updateOtherMembersTotal();
+    }
+
+    function renderOtherMemberRows(members = []) {
+      const list = document.getElementById('otherMembersList');
+      list.innerHTML = '';
+      (members.length ? members : [{}]).forEach(member => list.appendChild(createOtherMemberRow(member)));
+      updateOtherMemberRemoveButtons();
+      updateOtherMembersTotal();
+    }
+
+    function updateOtherMemberRemoveButtons() {
+      const rows = document.querySelectorAll('#otherMembersList .other-member-row');
+      rows.forEach(row => {
+        row.querySelector('.other-member-remove').disabled = rows.length <= 1;
+      });
+    }
+
+    function getOtherMemberEntries() {
+      return Array.from(document.querySelectorAll('#otherMembersList .other-member-row')).map(row => {
+        const name = row.querySelector('.other-member-name').value.trim();
+        const amount = parseFloat(row.querySelector('.other-member-amount').value);
+        return {
+          name,
+          amount,
+          isBlank: !name && !(amount > 0)
+        };
+      });
+    }
+
+    function updateOtherMembersTotal() {
+      const total = getOtherMemberEntries().reduce((sum, member) => sum + (member.amount > 0 ? member.amount : 0), 0);
+      document.getElementById('otherMembersTotal').textContent = total > 0 ? formatCurrency(total) : '—';
+    }
+
+    function setOtherMembersDisabled(disabled) {
+      document.getElementById('otherMembersSection').querySelectorAll('input, button').forEach(el => {
+        el.disabled = disabled;
+      });
+      if (!disabled) updateOtherMemberRemoveButtons();
+    }
+
+    function describeOtherShare(record) {
+      if (Array.isArray(record.otherMembers) && record.otherMembers.length) {
+        return record.otherMembers.map((member, i) => `${member.name || 'Member ' + (i + 1)}: ${formatCurrency(member.amount)}`).join(', ');
+      }
+      if (record.otherNote) return record.otherNote;
+      return 'Expense date: ' + record.date;
+    }
+
+    function switchMainTab(tab) {
+      const isSummary = tab === 'summary';
+      document.getElementById('summaryTabPanel').classList.toggle('hidden', !isSummary);
+      document.getElementById('transactionsTabPanel').classList.toggle('hidden', isSummary);
+      [
+        ['tabSummaryBtn', isSummary],
+        ['tabTransactionsBtn', !isSummary]
+      ].forEach(([id, active]) => {
+        const btn = document.getElementById(id);
+        btn.classList.toggle('bg-white', active);
+        btn.classList.toggle('text-slate-900', active);
+        btn.classList.toggle('shadow-xs', active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('hover:text-slate-800', !active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      if (isSummary) updateCharts(getFilteredMonthTransactions());
     }
 
     function setMonth(yearMonthStr) {
@@ -2882,6 +3169,8 @@
       });
 
       // Add Modal Open Buttons
+      document.getElementById('tabSummaryBtn').addEventListener('click', () => switchMainTab('summary'));
+      document.getElementById('tabTransactionsBtn').addEventListener('click', () => switchMainTab('transactions'));
       document.getElementById('openAddModalBtn').addEventListener('click', () => openAddTransactionModal());
       document.getElementById('printSummaryBtn').addEventListener('click', () => {
         setMoreActionsOpen(false);
@@ -2970,8 +3259,14 @@
         const type = typeElem ? typeElem.value : 'EXPENSE';
         const fundSource = normalizeFundSource(document.getElementById('formFundSource').value);
         const checklistItemId = type === 'EXPENSE' ? '' : document.getElementById('formChecklistItem').value;
+        let otherBalanceId = type !== 'EXPENSE' ? document.getElementById('formOtherBalance').value : '';
+        if (!otherBalances.some(entry => entry.id === otherBalanceId)) otherBalanceId = '';
         const hasOtherMembers = type === 'EXPENSE' && document.getElementById('formOtherMembers').checked;
-        const otherAmount = parseFloat(document.getElementById('formOtherAmount').value);
+        const otherMembers = hasOtherMembers ? getOtherMemberEntries().filter(member => !member.isBlank).map(member => ({
+          name: member.name,
+          amount: member.amount
+        })) : [];
+        const otherAmount = Math.round(otherMembers.reduce((sum, member) => sum + (member.amount > 0 ? member.amount : 0), 0) * 100) / 100;
         const otherNote = document.getElementById('formOtherNote').value.trim();
 
         const errorBox = document.getElementById('formErrorMessage');
@@ -2986,8 +3281,8 @@
           errorBox.classList.remove('hidden');
           return;
         }
-        if (hasOtherMembers && (isNaN(otherAmount) || otherAmount <= 0 || otherAmount > amount)) {
-          errorBox.textContent = 'Enter an amount owed by others that is greater than 0 and no more than the expense amount.';
+        if (hasOtherMembers && (!otherMembers.length || otherMembers.some(member => isNaN(member.amount) || member.amount <= 0) || otherAmount > amount)) {
+          errorBox.textContent = 'Enter a valid amount for each member; the total owed must be greater than 0 and no more than the expense amount.';
           errorBox.classList.remove('hidden');
           return;
         }
@@ -3002,6 +3297,7 @@
         if (editId) {
           const idx = transactions.findIndex(t => t.id === editId);
           if (idx !== -1) {
+            revertBalanceAddition(transactions[idx]);
             transactions[idx] = {
               ...transactions[idx],
               description: desc,
@@ -3012,11 +3308,15 @@
               fundSource,
               notes: notes,
               otherAmount: hasOtherMembers ? otherAmount : undefined,
+              otherMembers: hasOtherMembers ? otherMembers : undefined,
               otherNote: hasOtherMembers ? otherNote : '',
+              otherBalanceId: otherBalanceId || undefined,
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
               checklistItemId,
               updatedAt: new Date().toISOString()
             };
+            applyBalanceAddition(transactions[idx]);
+            saveOtherBalancesToStorage();
             showToast('Transaction updated');
           }
         } else {
@@ -3030,12 +3330,16 @@
             fundSource,
             notes: notes,
             otherAmount: hasOtherMembers ? otherAmount : undefined,
+            otherMembers: hasOtherMembers ? otherMembers : undefined,
             otherNote: hasOtherMembers ? otherNote : '',
+            otherBalanceId: otherBalanceId || undefined,
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
             checklistItemId,
             updatedAt: new Date().toISOString()
           };
           transactions.push(newRecord);
+          applyBalanceAddition(newRecord);
+          saveOtherBalancesToStorage();
           showToast('Transaction added');
         }
 
@@ -3051,13 +3355,76 @@
       });
 
       document.getElementById('formOtherMembers').addEventListener('change', updateOtherMembersFields);
+      document.getElementById('addOtherMemberBtn').addEventListener('click', () => addOtherMemberRow());
+      document.getElementById('otherMembersList').addEventListener('click', e => {
+        const removeBtn = e.target.closest('.other-member-remove');
+        if (removeBtn) {
+          removeBtn.closest('.other-member-row').remove();
+          updateOtherMemberRemoveButtons();
+          updateOtherMembersTotal();
+        }
+      });
+      document.getElementById('otherMembersList').addEventListener('input', e => {
+        if (e.target.classList.contains('other-member-amount')) updateOtherMembersTotal();
+      });
       document.getElementById('pendingOthersList').addEventListener('change', e => {
         const checkbox = e.target.closest('[data-settle-expense]');
-        if (checkbox && checkbox.checked) settleOtherShare(checkbox.dataset.settleExpense);
+        if (checkbox && checkbox.checked) settleOtherShare(checkbox.dataset.settleExpense, Number(checkbox.dataset.settleMember));
       });
       document.getElementById('pendingOthersList').addEventListener('click', e => {
         const undoButton = e.target.closest('[data-undo-reimbursement]');
         if (undoButton) undoOtherShare(undoButton.dataset.undoReimbursement);
+      });
+      document.getElementById('otherBalanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('otherBalanceName').value.trim();
+        const amount = parseFloat(document.getElementById('otherBalanceAmount').value);
+        if (!name || isNaN(amount) || amount < 0) return;
+        if (editingBalanceId) {
+          const entry = otherBalances.find(b => b.id === editingBalanceId);
+          if (entry) {
+            entry.name = name;
+            entry.amount = amount;
+          }
+          showToast('Balance updated');
+        } else {
+          otherBalances.push({
+            id: 'bal-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            name,
+            amount
+          });
+          showToast('Balance added');
+        }
+        saveOtherBalancesToStorage();
+        resetOtherBalanceForm();
+        renderOtherBalances();
+      });
+      document.getElementById('otherBalanceCancelBtn').addEventListener('click', resetOtherBalanceForm);
+      document.getElementById('otherBalancesList').addEventListener('click', e => {
+        const editBtn = e.target.closest('[data-balance-edit]');
+        if (editBtn) {
+          const entry = otherBalances.find(b => b.id === editBtn.dataset.balanceEdit);
+          if (!entry) return;
+          editingBalanceId = entry.id;
+          document.getElementById('otherBalanceName').value = entry.name;
+          document.getElementById('otherBalanceAmount').value = entry.amount;
+          document.getElementById('otherBalanceSubmitBtn').textContent = 'Update';
+          document.getElementById('otherBalanceCancelBtn').classList.remove('hidden');
+          document.getElementById('otherBalanceName').focus();
+          return;
+        }
+        const deleteBtn = e.target.closest('[data-balance-delete]');
+        if (deleteBtn) {
+          const entry = otherBalances.find(b => b.id === deleteBtn.dataset.balanceDelete);
+          if (!entry) return;
+          openCustomConfirm('Remove Balance', `Remove balance for "${entry.name}"?`, () => {
+            otherBalances = otherBalances.filter(b => b.id !== entry.id);
+            if (editingBalanceId === entry.id) resetOtherBalanceForm();
+            saveOtherBalancesToStorage();
+            renderOtherBalances();
+            showToast('Balance removed');
+          });
+        }
       });
       document.querySelectorAll('input[name="transType"]').forEach(radio => {
         radio.addEventListener('change', updateTransactionTypeFields);
@@ -3074,11 +3441,14 @@
             localStorage.removeItem(STATE_KEY_INCOME);
             localStorage.removeItem(STATE_KEY_CHECKLIST_ITEMS);
             localStorage.removeItem(STATE_KEY_CHECKLIST_STATUS);
+            localStorage.removeItem(STATE_KEY_OTHER_BALANCES);
             transactions = [];
             categories = [...DEFAULT_CATEGORIES];
             monthlyIncomes = {};
             checklistItems = [];
             checklistStatuses = {};
+            otherBalances = [];
+            resetOtherBalanceForm();
             saveCategoriesToStorage();
             saveIncomeToStorage();
             renderCategoryDropdowns();
