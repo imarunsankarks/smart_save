@@ -799,6 +799,7 @@
       <form id="otherBalanceForm" class="flex flex-wrap items-center gap-2.5">
         <input id="otherBalanceName" type="text" maxlength="60" required placeholder="Account name, e.g. HDFC Savings, Wallet" class="flex-1 min-w-[160px] px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         <input id="otherBalanceAmount" type="number" step="0.01" min="0" required placeholder="0.00" class="w-32 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <input id="otherBalanceNote" type="text" maxlength="240" placeholder="Why are you changing this balance?" aria-label="Reason for balance change" class="hidden flex-1 min-w-[200px] px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         <button type="submit" id="otherBalanceSubmitBtn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer">Add</button>
         <button type="button" id="otherBalanceCancelBtn" class="hidden px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-sm transition-colors cursor-pointer">Cancel</button>
       </form>
@@ -1457,7 +1458,8 @@
       }
       try {
         const storedBalances = JSON.parse(localStorage.getItem(STATE_KEY_OTHER_BALANCES) || '[]');
-        otherBalances = Array.isArray(storedBalances) ? storedBalances : [];
+        otherBalances = Array.isArray(storedBalances) ?
+          storedBalances.map(entry => ({ ...entry, audit: Array.isArray(entry.audit) ? entry.audit : [] })) : [];
       } catch (e) {
         otherBalances = [];
       }
@@ -1535,7 +1537,18 @@
       const validCurrencies = ['$', '₹', '€', '£', '¥', 'C$', 'A$'];
       if (!Array.isArray(records) || !Array.isArray(savedCategories) || savedCategories.length === 0) return false;
       if (!Array.isArray(savedChecklistItems) || !savedChecklistStatuses || typeof savedChecklistStatuses !== 'object' || Array.isArray(savedChecklistStatuses)) return false;
-      if (!Array.isArray(savedBalances) || savedBalances.some(entry => !entry || typeof entry.id !== 'string' || typeof entry.name !== 'string' || !entry.name.trim() || !Number.isFinite(Number(entry.amount)) || Number(entry.amount) < 0)) return false;
+      if (!Array.isArray(savedBalances) || savedBalances.some(entry =>
+        !entry || typeof entry.id !== 'string' || typeof entry.name !== 'string' || !entry.name.trim() ||
+        !Number.isFinite(Number(entry.amount)) || Number(entry.amount) < 0 ||
+        (entry.audit !== undefined && (!Array.isArray(entry.audit) || entry.audit.some(event =>
+          !event || typeof event.action !== 'string' || typeof event.timestamp !== 'string' ||
+          Number.isNaN(Date.parse(event.timestamp)) ||
+          (event.previousAmount !== null && !Number.isFinite(Number(event.previousAmount))) ||
+          !Number.isFinite(Number(event.amount)) ||
+          (event.note !== undefined && typeof event.note !== 'string') ||
+          (event.transactionId !== undefined && typeof event.transactionId !== 'string')
+        )))
+      )) return false;
       if (!incomes || typeof incomes !== 'object' || Array.isArray(incomes)) return false;
       if (!validCurrencies.includes(currency)) return false;
       const isValidDate = value => typeof value === 'string' &&
@@ -1618,7 +1631,10 @@
       } = backup.data;
       const importedChecklistItems = backup.data.checklistItems || [];
       const importedChecklistStatuses = backup.data.checklistStatuses || {};
-      const importedBalances = backup.data.otherBalances || [];
+      const importedBalances = (backup.data.otherBalances || []).map(entry => ({
+        ...entry,
+        audit: Array.isArray(entry.audit) ? entry.audit : []
+      }));
       const values = {
         [STATE_KEY_TRANSACTIONS]: JSON.stringify(importedTransactions),
         [STATE_KEY_CATEGORIES]: JSON.stringify(importedCategories),
@@ -2612,7 +2628,8 @@
       totalEl.textContent = `${formatCurrency(total)} total`;
       renderOtherBalanceOptions();
       list.innerHTML = otherBalances.length ? otherBalances.map(entry =>
-        '<div class="flex items-center gap-3 py-2.5">' +
+        '<div class="py-2.5">' +
+        '<div class="flex items-center gap-3">' +
         '<span class="min-w-0 flex-1 text-sm font-medium text-slate-800 truncate">' + escapeHtml(entry.name) + '</span>' +
         '<span class="text-sm font-bold text-slate-700 whitespace-nowrap">' + formatCurrency(entry.amount) + '</span>' +
         '<button type="button" data-balance-edit="' + escapeHtml(entry.id) + '" title="Edit" aria-label="Edit ' + escapeHtml(entry.name) + '" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer">' +
@@ -2621,6 +2638,19 @@
         '<button type="button" data-balance-delete="' + escapeHtml(entry.id) + '" title="Remove" aria-label="Remove ' + escapeHtml(entry.name) + '" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">' +
         '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' +
         '</button>' +
+        '</div>' +
+        '<details class="mt-1 text-xs text-slate-500">' +
+        '<summary class="w-fit cursor-pointer hover:text-slate-700">Audit history (' + (Array.isArray(entry.audit) ? entry.audit.length : 0) + ')</summary>' +
+        '<ol class="mt-2 space-y-2 pl-4">' +
+        (Array.isArray(entry.audit) ? [...entry.audit].reverse().map(event =>
+          '<li><span class="font-medium text-slate-700">' + escapeHtml(event.action) + '</span> · ' +
+          escapeHtml(new Date(event.timestamp).toLocaleString()) + ' · ' +
+          (event.previousAmount === null ? '—' : formatCurrency(event.previousAmount)) + ' → ' + formatCurrency(event.amount) +
+          (event.note ? '<div class="mt-0.5 break-words">' + escapeHtml(event.note) + '</div>' : '') +
+          '</li>'
+        ).join('') : '') +
+        '</ol>' +
+        '</details>' +
         '</div>'
       ).join('') : '<p class="py-3 text-sm text-slate-500">No balances added yet.</p>';
     }
@@ -2628,6 +2658,8 @@
     function resetOtherBalanceForm() {
       editingBalanceId = '';
       document.getElementById('otherBalanceForm').reset();
+      document.getElementById('otherBalanceNote').classList.add('hidden');
+      document.getElementById('otherBalanceNote').required = false;
       document.getElementById('otherBalanceSubmitBtn').textContent = 'Add';
       document.getElementById('otherBalanceCancelBtn').classList.add('hidden');
     }
@@ -2642,16 +2674,60 @@
       if (otherBalances.some(entry => entry.id === target)) select.value = target;
     }
 
+    function addBalanceAudit(entry, action, previousAmount, amount, note, transactionId) {
+      if (!Array.isArray(entry.audit)) entry.audit = [];
+      entry.audit.push({
+        timestamp: new Date().toISOString(),
+        action,
+        previousAmount,
+        amount,
+        note,
+        transactionId: transactionId || ''
+      });
+    }
+
     function applyBalanceAddition(record) {
       if (!record || !record.otherBalanceId) return;
       const entry = otherBalances.find(b => b.id === record.otherBalanceId);
-      if (entry) entry.amount = Math.round((Number(entry.amount) + Number(record.amount)) * 100) / 100;
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount + Number(record.amount)) * 100) / 100;
+        addBalanceAudit(entry, 'Savings entry added', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
     }
 
     function revertBalanceAddition(record) {
       if (!record || !record.otherBalanceId) return;
       const entry = otherBalances.find(b => b.id === record.otherBalanceId);
-      if (entry) entry.amount = Math.round((Number(entry.amount) - Number(record.amount)) * 100) / 100;
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount - Number(record.amount)) * 100) / 100;
+        addBalanceAudit(entry, 'Savings entry removed', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
+    }
+
+    function updateBalanceForTransactionEdit(previousRecord, updatedRecord) {
+      const previousEntry = previousRecord.otherBalanceId ?
+        otherBalances.find(entry => entry.id === previousRecord.otherBalanceId) : null;
+      const updatedEntry = updatedRecord.otherBalanceId ?
+        otherBalances.find(entry => entry.id === updatedRecord.otherBalanceId) : null;
+
+      if (previousEntry && updatedEntry && previousEntry.id === updatedEntry.id) {
+        const previousAmount = Number(previousEntry.amount);
+        const amount = Math.round((previousAmount - Number(previousRecord.amount) + Number(updatedRecord.amount)) * 100) / 100;
+        if (amount !== previousAmount) {
+          previousEntry.amount = amount;
+          addBalanceAudit(previousEntry, 'Savings entry updated', previousAmount, amount,
+            `${previousRecord.description} (${previousRecord.date}) → ${updatedRecord.description} (${updatedRecord.date})`,
+            updatedRecord.id);
+        }
+        return;
+      }
+
+      revertBalanceAddition(previousRecord);
+      applyBalanceAddition(updatedRecord);
     }
 
     function bindCollapsibleSections() {
@@ -3297,7 +3373,7 @@
         if (editId) {
           const idx = transactions.findIndex(t => t.id === editId);
           if (idx !== -1) {
-            revertBalanceAddition(transactions[idx]);
+            const previousRecord = transactions[idx];
             transactions[idx] = {
               ...transactions[idx],
               description: desc,
@@ -3315,7 +3391,7 @@
               checklistItemId,
               updatedAt: new Date().toISOString()
             };
-            applyBalanceAddition(transactions[idx]);
+            updateBalanceForTransactionEdit(previousRecord, transactions[idx]);
             saveOtherBalancesToStorage();
             showToast('Transaction updated');
           }
@@ -3379,20 +3455,28 @@
         e.preventDefault();
         const name = document.getElementById('otherBalanceName').value.trim();
         const amount = parseFloat(document.getElementById('otherBalanceAmount').value);
-        if (!name || isNaN(amount) || amount < 0) return;
+        const note = document.getElementById('otherBalanceNote').value.trim();
+        if (!name || isNaN(amount) || amount < 0 || (editingBalanceId && !note)) return;
         if (editingBalanceId) {
           const entry = otherBalances.find(b => b.id === editingBalanceId);
           if (entry) {
+            const previousAmount = Number(entry.amount);
+            const previousName = entry.name;
             entry.name = name;
             entry.amount = amount;
+            addBalanceAudit(entry, 'Balance edited', previousAmount, amount,
+              previousName === name ? note : `${note} (Name: ${previousName} → ${name})`);
           }
           showToast('Balance updated');
         } else {
-          otherBalances.push({
+          const entry = {
             id: 'bal-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
             name,
-            amount
-          });
+            amount,
+            audit: []
+          };
+          addBalanceAudit(entry, 'Balance created', null, amount, 'Initial balance');
+          otherBalances.push(entry);
           showToast('Balance added');
         }
         saveOtherBalancesToStorage();
@@ -3408,6 +3492,9 @@
           editingBalanceId = entry.id;
           document.getElementById('otherBalanceName').value = entry.name;
           document.getElementById('otherBalanceAmount').value = entry.amount;
+          const noteInput = document.getElementById('otherBalanceNote');
+          noteInput.classList.remove('hidden');
+          noteInput.required = true;
           document.getElementById('otherBalanceSubmitBtn').textContent = 'Update';
           document.getElementById('otherBalanceCancelBtn').classList.remove('hidden');
           document.getElementById('otherBalanceName').focus();
