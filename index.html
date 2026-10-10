@@ -938,6 +938,14 @@
           <select id="filterCategory" class="w-full sm:w-auto py-2 px-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 shadow-xs sm:max-w-[160px]">
             <option value="ALL">All Categories</option>
           </select>
+
+          <!-- Sort order -->
+          <select id="sortTransactions" aria-label="Sort transactions" class="w-full sm:w-auto py-2 px-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 shadow-xs">
+            <option value="date-desc">Date: Newest first</option>
+            <option value="date-asc">Date: Oldest first</option>
+            <option value="amount-asc">Amount: Low to high</option>
+            <option value="amount-desc">Amount: High to low</option>
+          </select>
         </div>
       </div>
 
@@ -2368,10 +2376,12 @@
       const searchInput = document.getElementById('searchInput');
       const filterType = document.getElementById('filterType');
       const filterCategory = document.getElementById('filterCategory');
+      const sortTransactions = document.getElementById('sortTransactions');
 
       const searchQuery = (searchInput ? searchInput.value : '').toLowerCase().trim();
       const typeFilter = filterType ? filterType.value : 'ALL';
       const categoryFilter = filterCategory ? filterCategory.value : 'ALL';
+      const sortOrder = sortTransactions ? sortTransactions.value : 'date-desc';
 
       const filtered = monthRecords.filter(item => {
         const matchSearch = !searchQuery ||
@@ -2387,8 +2397,17 @@
       });
 
       filtered.sort((a, b) => {
-        const dateOrder = (b.date || '').localeCompare(a.date || '');
-        if (dateOrder !== 0) return dateOrder;
+        if (sortOrder === 'amount-asc' || sortOrder === 'amount-desc') {
+          const amountDifference = (Number(a.amount) || 0) - (Number(b.amount) || 0);
+          if (amountDifference !== 0) {
+            return sortOrder === 'amount-asc' ? amountDifference : -amountDifference;
+          }
+        } else {
+          const dateOrder = (a.date || '').localeCompare(b.date || '');
+          if (dateOrder !== 0) {
+            return sortOrder === 'date-asc' ? dateOrder : -dateOrder;
+          }
+        }
 
         const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
         const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -3151,6 +3170,10 @@
         renderTransactionsTable(getFilteredMonthTransactions());
       });
       document.getElementById('filterCategory').addEventListener('change', () => {
+        transactionCurrentPage = 1;
+        renderTransactionsTable(getFilteredMonthTransactions());
+      });
+      document.getElementById('sortTransactions').addEventListener('change', () => {
         transactionCurrentPage = 1;
         renderTransactionsTable(getFilteredMonthTransactions());
       });
