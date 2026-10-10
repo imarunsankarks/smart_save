@@ -1233,6 +1233,25 @@
     </div>
   </div>
 
+  <div id="importChoiceModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="importChoiceTitle">
+    <div class="fixed inset-0 modal-backdrop" id="importChoiceBackdrop"></div>
+    <div class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 fade-in border border-slate-100">
+      <h3 id="importChoiceTitle" class="text-lg font-bold text-slate-900 mb-2">Import Backup</h3>
+      <p class="text-sm text-slate-500 mb-5 leading-relaxed">Choose whether to replace your current data or add records from this backup. When adding, existing values are kept and transactions with matching IDs are skipped.</p>
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+        <button type="button" id="cancelImportBtn" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold text-sm transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" id="mergeImportBtn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer">
+          Keep Existing &amp; Add
+        </button>
+        <button type="button" id="replaceImportBtn" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-colors cursor-pointer">
+          Replace Everything
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 text-sm font-medium">
     <div id="toastIcon">
@@ -1390,6 +1409,7 @@
     let categoryChartInstance = null;
     let typeChartInstance = null;
     let pendingConfirmAction = null;
+    let pendingImportBackup = null;
     const TRANSACTION_PAGE_SIZE = 20;
     let transactionCurrentPage = 1;
 
@@ -1630,7 +1650,7 @@
       );
     }
 
-    function importAppData(backup) {
+    function importAppData(backup, mergeWithExisting = false) {
       const {
         transactions: importedTransactions,
         categories: importedCategories,
@@ -1643,14 +1663,54 @@
         ...entry,
         audit: Array.isArray(entry.audit) ? entry.audit : []
       }));
+      let addedTransactionCount = importedTransactions.length;
+      let skippedTransactionCount = 0;
+      let nextTransactions = importedTransactions;
+      let nextCategories = importedCategories;
+      let nextIncomes = importedIncomes;
+      let nextChecklistItems = importedChecklistItems;
+      let nextChecklistStatuses = importedChecklistStatuses;
+      let nextBalances = importedBalances;
+      let nextCurrency = currency;
+
+      if (mergeWithExisting) {
+        const existingTransactionIds = new Set(transactions.map(record => record.id));
+        const newTransactions = importedTransactions.filter(record => !existingTransactionIds.has(record.id));
+        addedTransactionCount = newTransactions.length;
+        skippedTransactionCount = importedTransactions.length - addedTransactionCount;
+        nextTransactions = [...transactions, ...newTransactions];
+
+        const mergeById = (existing, incoming) => {
+          const existingIds = new Set(existing.map(record => record.id));
+          const newRecords = incoming.filter(record => {
+            if (existingIds.has(record.id)) return false;
+            existingIds.add(record.id);
+            return true;
+          });
+          return [...existing, ...newRecords];
+        };
+        nextCategories = mergeById(categories, importedCategories);
+        nextChecklistItems = mergeById(checklistItems, importedChecklistItems);
+        nextBalances = mergeById(otherBalances, importedBalances);
+        nextIncomes = { ...importedIncomes, ...monthlyIncomes };
+        nextChecklistStatuses = { ...importedChecklistStatuses };
+        Object.entries(checklistStatuses).forEach(([month, completedIds]) => {
+          nextChecklistStatuses[month] = Array.from(new Set([
+            ...(Array.isArray(nextChecklistStatuses[month]) ? nextChecklistStatuses[month] : []),
+            ...(Array.isArray(completedIds) ? completedIds : [])
+          ]));
+        });
+        nextCurrency = currentCurrency;
+      }
+
       const values = {
-        [STATE_KEY_TRANSACTIONS]: JSON.stringify(importedTransactions),
-        [STATE_KEY_CATEGORIES]: JSON.stringify(importedCategories),
-        [STATE_KEY_INCOME]: JSON.stringify(importedIncomes),
-        [STATE_KEY_CURRENCY]: currency,
-        [STATE_KEY_CHECKLIST_ITEMS]: JSON.stringify(importedChecklistItems),
-        [STATE_KEY_CHECKLIST_STATUS]: JSON.stringify(importedChecklistStatuses),
-        [STATE_KEY_OTHER_BALANCES]: JSON.stringify(importedBalances)
+        [STATE_KEY_TRANSACTIONS]: JSON.stringify(nextTransactions),
+        [STATE_KEY_CATEGORIES]: JSON.stringify(nextCategories),
+        [STATE_KEY_INCOME]: JSON.stringify(nextIncomes),
+        [STATE_KEY_CURRENCY]: nextCurrency,
+        [STATE_KEY_CHECKLIST_ITEMS]: JSON.stringify(nextChecklistItems),
+        [STATE_KEY_CHECKLIST_STATUS]: JSON.stringify(nextChecklistStatuses),
+        [STATE_KEY_OTHER_BALANCES]: JSON.stringify(nextBalances)
       };
       const previousValues = Object.fromEntries(Object.keys(values).map(key => [key, localStorage.getItem(key)]));
 
@@ -1668,17 +1728,37 @@
         throw error;
       }
 
-      transactions = importedTransactions;
-      categories = importedCategories;
-      monthlyIncomes = importedIncomes;
-      checklistItems = importedChecklistItems;
-      checklistStatuses = importedChecklistStatuses;
-      otherBalances = importedBalances;
-      currentCurrency = currency;
+      transactions = nextTransactions;
+      categories = nextCategories;
+      monthlyIncomes = nextIncomes;
+      checklistItems = nextChecklistItems;
+      checklistStatuses = nextChecklistStatuses;
+      otherBalances = nextBalances;
+      currentCurrency = nextCurrency;
       document.getElementById('currencySelector').value = currentCurrency;
       renderCategoryDropdowns();
       renderDashboard();
-      showToast('Backup imported; local data replaced');
+      showToast(mergeWithExisting ?
+        `Backup merged; ${addedTransactionCount} transactions added, ${skippedTransactionCount} duplicates skipped` :
+        'Backup imported; local data replaced');
+    }
+
+    function closeImportChoice() {
+      pendingImportBackup = null;
+      document.getElementById('importChoiceModal').classList.add('hidden');
+    }
+
+    function applyPendingImport(mergeWithExisting) {
+      const backup = pendingImportBackup;
+      closeImportChoice();
+      if (!backup) return;
+
+      try {
+        importAppData(backup, mergeWithExisting);
+      } catch (error) {
+        console.error('Could not import the selected backup.', error);
+        showToast('Import failed; current data was kept', true);
+      }
     }
 
     async function handleBackupFile(fileInput) {
@@ -1700,17 +1780,9 @@
         return;
       }
 
-      openCustomConfirm(
-        'Replace Local Data?',
-        'Importing this backup will replace all current transactions, categories, monthly incomes, and currency on this browser.',
-        () => {
-          try {
-            importAppData(backup);
-          } catch (error) {
-            showToast('Import failed; current data was kept', true);
-          }
-        }
-      );
+      pendingImportBackup = backup;
+      document.getElementById('importChoiceModal').classList.remove('hidden');
+      document.getElementById('cancelImportBtn').focus();
     }
 
     function getPreviousMonthKey(monthStr) {
@@ -3159,6 +3231,15 @@
         importDataFile.click();
       });
       importDataFile.addEventListener('change', () => handleBackupFile(importDataFile));
+      document.getElementById('cancelImportBtn').addEventListener('click', closeImportChoice);
+      document.getElementById('importChoiceBackdrop').addEventListener('click', closeImportChoice);
+      document.getElementById('mergeImportBtn').addEventListener('click', () => applyPendingImport(true));
+      document.getElementById('replaceImportBtn').addEventListener('click', () => applyPendingImport(false));
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !document.getElementById('importChoiceModal').classList.contains('hidden')) {
+          closeImportChoice();
+        }
+      });
 
       // Filter and search live updates
       document.getElementById('searchInput').addEventListener('input', () => {
