@@ -651,20 +651,29 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <div class="relative flex-1 sm:w-64">
-          <span id="incomeCurrencyPrefix" class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm select-none">$</span>
-          <input type="number" id="monthlyIncomeInput" step="0.01" min="0" placeholder="e.g. 5000" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-800/90 text-white placeholder-slate-500 border border-slate-600 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all">
+      <div class="flex flex-col gap-2 items-stretch sm:items-end">
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1 sm:w-64">
+            <span id="incomeCurrencyPrefix" class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm select-none">$</span>
+            <input type="number" id="monthlyIncomeInput" step="0.01" min="0" placeholder="e.g. 5000" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-800/90 text-white placeholder-slate-500 border border-slate-600 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all">
+          </div>
+          <button id="saveIncomeBtn" type="button" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer">
+            Set Income
+          </button>
         </div>
-        <button id="saveIncomeBtn" type="button" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer">
-          Set Income
-        </button>
-      </div>
-      <div class="mt-3 flex justify-end sm:justify-start">
-        <div class="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
+        <div class="flex flex-nowrap justify-end gap-2 overflow-x-auto">
+        <div class="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 whitespace-nowrap">
           <span class="text-slate-400">Carry Forward</span>
           <span id="carryForwardAmount" class="font-semibold text-emerald-300">$0.00</span>
         </div>
+        <button id="borrowedChipBtn" type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 whitespace-nowrap hover:bg-slate-700/60 transition-colors cursor-pointer">
+          <span class="text-slate-400">Borrowed from balances</span>
+          <span id="borrowedAmount" class="font-semibold text-amber-300">$0.00</span>
+          <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
       </div>
     </div>
 
@@ -1008,6 +1017,28 @@
 
   <section id="printSummary" aria-label="Monthly expense and savings summary"></section>
 
+  <div id="borrowedDetailsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="fixed inset-0 modal-backdrop" id="borrowedDetailsBackdrop"></div>
+    <div class="relative bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl z-10 fade-in border border-slate-100 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Borrowed Details</h3>
+          <p class="text-xs text-slate-500">Amounts taken from other balances this month</p>
+        </div>
+        <button id="borrowedDetailsCloseBtn" type="button" aria-label="Close" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="borrowedDetailsList" class="space-y-2 text-xs overflow-y-auto"></div>
+      <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total borrowed</span>
+        <span id="borrowedDetailsTotal" class="text-sm font-bold text-amber-700">$0.00</span>
+      </div>
+    </div>
+  </div>
+
   <div id="transactionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
     <div class="fixed inset-0 modal-backdrop" id="modalBackdrop"></div>
     <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl z-10 fade-in border border-slate-100 max-h-[95vh] overflow-y-auto">
@@ -1086,7 +1117,16 @@
             <option value="AVAILABLE">Available Funds</option>
             <option value="SAVINGS">Savings</option>
             <option value="PLANNED_FUND">Planned Fund</option>
+            <option value="OTHER_BALANCE">Other Balance (Borrow)</option>
           </select>
+        </div>
+
+        <div id="sourceBalanceField" class="hidden">
+          <label for="formSourceBalance" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Borrow from Balance *</label>
+          <select id="formSourceBalance" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+            <option value="">Select a balance...</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">The amount is added to this month's available total and subtracted from the selected balance.</p>
         </div>
 
         <!-- Description -->
@@ -1608,13 +1648,16 @@
         if (record.expectedDate !== undefined && record.expectedDate !== '' && !isValidDate(record.expectedDate)) return false;
         if (record.checklistItemId !== undefined && typeof record.checklistItemId !== 'string') return false;
         if (record.otherBalanceId !== undefined && typeof record.otherBalanceId !== 'string') return false;
+        if (record.borrowedFrom !== undefined && typeof record.borrowedFrom !== 'string') return false;
         if (transactionIds.has(record.id)) return false;
         transactionIds.add(record.id);
       }
 
       const recordById = new Map(records.map(record => [record.id, record]));
+      const balanceIds = new Set(savedBalances.map(entry => entry.id));
       const reimbursedKeys = new Set();
       for (const record of records) {
+        if (record.borrowedFrom !== undefined && !balanceIds.has(record.borrowedFrom)) return false;
         if (!record.reimbursementFor) continue;
         const sourceRecord = recordById.get(record.reimbursementFor);
         if (!sourceRecord || sourceRecord.type !== 'EXPENSE' || !sourceRecord.otherAmount) return false;
@@ -1856,6 +1899,7 @@
       const normalized = String(value || 'AVAILABLE').toUpperCase();
       if (normalized === 'SAVINGS' || normalized === 'SAVING') return 'SAVINGS';
       if (normalized === 'PLANNED_FUND' || normalized === 'PLANNED_SAVING') return 'PLANNED_FUND';
+      if (normalized === 'OTHER_BALANCE' || normalized === 'OTHER_EXPENSE' || normalized === 'BORROWED') return 'OTHER_BALANCE';
       return 'AVAILABLE';
     }
 
@@ -1999,6 +2043,8 @@
       let availableBudgetImpact = 0;
       let savingsBudgetImpact = 0;
       let plannedBudgetImpact = 0;
+      let borrowedTotal = 0;
+      const borrowedEntries = [];
       let countExpense = 0;
       let countSavings = 0;
       let countFutureSavings = 0;
@@ -2015,6 +2061,16 @@
           savingsBudgetImpact += amt;
         } else if (fundSource === 'PLANNED_FUND') {
           plannedBudgetImpact += amt;
+        } else if (fundSource === 'OTHER_BALANCE') {
+          const signedAmt = isReimbursement ? -amt : amt;
+          borrowedTotal += signedAmt;
+          borrowedEntries.push({
+            sourceId: r.borrowedFrom || '',
+            sourceName: (otherBalances.find(b => b.id === r.borrowedFrom) || {}).name || 'Other balance',
+            amount: signedAmt,
+            date: r.date || '',
+            description: r.description || ''
+          });
         }
 
         if (r.type === 'PLANNED_SAVING') {
@@ -2034,7 +2090,7 @@
       });
 
       const monthIncome = getMonthlyAvailableIncome(monthStr);
-      const totalAvailable = monthIncome + carryForward.savings + carryForward.planned + carryForward.nonAllocated;
+      const totalAvailable = monthIncome + carryForward.savings + carryForward.planned + carryForward.nonAllocated + borrowedTotal;
       const futureSavingsBalance = carryForward.savings + futureSavings - savingsBudgetImpact;
       const plannedSavingsBalance = carryForward.planned + plannedSavings - plannedBudgetImpact;
       const nonAllocated = monthIncome + carryForward.nonAllocated - availableBudgetImpact;
@@ -2053,7 +2109,9 @@
         totalAllocated: totalExpense + totalSavings,
         availableBudgetImpact,
         savingsBudgetImpact,
-        plannedBudgetImpact
+        plannedBudgetImpact,
+        borrowedTotal,
+        borrowedSources: borrowedEntries
       };
     }
 
@@ -2133,6 +2191,19 @@
       const carryForward = getCarryForwardValues(selectedMonthString);
       const carryForwardTotal = carryForward.savings + carryForward.planned + carryForward.nonAllocated;
       document.getElementById('carryForwardAmount').textContent = formatCurrency(carryForwardTotal);
+      document.getElementById('borrowedAmount').textContent = formatCurrency(metrics.borrowedTotal || 0);
+      document.getElementById('borrowedDetailsTotal').textContent = formatCurrency(metrics.borrowedTotal || 0);
+      const detailsList = document.getElementById('borrowedDetailsList');
+      const entries = (metrics.borrowedSources || []).filter(entry => entry.amount > 0);
+      detailsList.innerHTML = entries.length ? entries.map(entry =>
+        '<div class="flex items-start justify-between gap-2 py-1">' +
+        '<div class="min-w-0">' +
+        '<div class="font-semibold text-slate-800">' + escapeHtml(entry.sourceName) + '</div>' +
+        '<div class="text-slate-400">' + escapeHtml(entry.date) + (entry.description ? ' · ' + escapeHtml(entry.description) : '') + '</div>' +
+        '</div>' +
+        '<span class="font-bold text-amber-700 whitespace-nowrap">' + formatCurrency(entry.amount) + '</span>' +
+        '</div>'
+      ).join('') : '<p class="text-slate-400">Nothing borrowed this month.</p>';
       document.getElementById('statTotalAvailable').textContent = formatCurrency(metrics.totalAvailable);
       document.getElementById('statAvailableSubtext').textContent = metrics.totalAvailable > 0 ?
         'Income + carry forward from previous month' :
@@ -2718,6 +2789,7 @@
       const total = otherBalances.reduce((sum, entry) => sum + Number(entry.amount), 0);
       totalEl.textContent = `${formatCurrency(total)} total`;
       renderOtherBalanceOptions();
+      renderSourceBalanceOptions();
       list.innerHTML = otherBalances.length ? otherBalances.map(entry =>
         '<div class="py-2.5">' +
         '<div class="flex items-center gap-3">' +
@@ -2819,6 +2891,49 @@
 
       revertBalanceAddition(previousRecord);
       applyBalanceAddition(updatedRecord);
+    }
+
+    function applyBorrowFromBalance(record) {
+      if (!record || !record.borrowedFrom) return;
+      const entry = otherBalances.find(b => b.id === record.borrowedFrom);
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount - Number(record.amount)) * 100) / 100;
+        addBalanceAudit(entry, 'Borrowed for expense', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
+    }
+
+    function revertBorrowFromBalance(record) {
+      if (!record || !record.borrowedFrom) return;
+      const entry = otherBalances.find(b => b.id === record.borrowedFrom);
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount + Number(record.amount)) * 100) / 100;
+        addBalanceAudit(entry, 'Borrow removed', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
+    }
+
+    function updateBorrowForTransactionEdit(previousRecord, updatedRecord) {
+      const previousEntry = previousRecord.borrowedFrom ?
+        otherBalances.find(entry => entry.id === previousRecord.borrowedFrom) : null;
+      const updatedEntry = updatedRecord.borrowedFrom ?
+        otherBalances.find(entry => entry.id === updatedRecord.borrowedFrom) : null;
+
+      if (previousEntry && updatedEntry && previousEntry.id === updatedEntry.id) {
+        const previousAmount = Number(previousEntry.amount);
+        const amount = Math.round((previousAmount + Number(previousRecord.amount) - Number(updatedRecord.amount)) * 100) / 100;
+        if (amount !== previousAmount) {
+          previousEntry.amount = amount;
+          addBalanceAudit(previousEntry, 'Borrowed amount updated', previousAmount, amount,
+            `${updatedRecord.description} (${updatedRecord.date})`, updatedRecord.id);
+        }
+        return;
+      }
+
+      revertBorrowFromBalance(previousRecord);
+      applyBorrowFromBalance(updatedRecord);
     }
 
     function bindCollapsibleSections() {
@@ -2933,6 +3048,7 @@
       updateOtherMembersFields();
       renderChecklistLinkOptions();
       renderOtherBalanceOptions('');
+      renderSourceBalanceOptions('');
 
       const today = new Date().toISOString().split('T')[0];
       if (defaultDate) {
@@ -2972,6 +3088,7 @@
       renderChecklistLinkOptions(item.checklistItemId || '');
       document.getElementById('formChecklistItem').value = item.checklistItemId || '';
       renderOtherBalanceOptions(item.otherBalanceId || '');
+      renderSourceBalanceOptions(item.borrowedFrom || '');
 
       const radios = document.getElementsByName('transType');
       for (const r of radios) {
@@ -2990,9 +3107,12 @@
       if (transactions.some(record => record.id === id && record.reimbursementFor)) return;
       openCustomConfirm('Delete Transaction', 'Are you sure you want to delete this transaction record?', () => {
         const removedRecords = transactions.filter(t => t.id === id || t.reimbursementFor === id);
-        removedRecords.forEach(revertBalanceAddition);
+        removedRecords.forEach(record => {
+          revertBalanceAddition(record);
+          revertBorrowFromBalance(record);
+        });
         transactions = transactions.filter(t => t.id !== id && t.reimbursementFor !== id);
-        if (removedRecords.some(r => r.otherBalanceId)) saveOtherBalancesToStorage();
+        if (removedRecords.some(r => r.otherBalanceId || r.borrowedFrom)) saveOtherBalancesToStorage();
         saveTransactionsToStorage();
         renderDashboard();
         showToast('Transaction removed successfully');
@@ -3008,6 +3128,30 @@
       document.getElementById('plannedSavingFields').classList.toggle('hidden', selectedType !== 'PLANNED_SAVING');
       document.getElementById('savingChecklistFields').classList.toggle('hidden', selectedType === 'EXPENSE');
       document.getElementById('otherMembersSection').classList.toggle('hidden', selectedType !== 'EXPENSE');
+      const otherBalanceOption = document.querySelector('#formFundSource option[value="OTHER_BALANCE"]');
+      if (otherBalanceOption) {
+        otherBalanceOption.disabled = selectedType !== 'EXPENSE';
+        if (selectedType !== 'EXPENSE' && document.getElementById('formFundSource').value === 'OTHER_BALANCE') {
+          document.getElementById('formFundSource').value = 'AVAILABLE';
+        }
+      }
+      updateFundSourceFields();
+    }
+
+    function updateFundSourceFields() {
+      const isBorrow = document.getElementById('formFundSource').value === 'OTHER_BALANCE';
+      document.getElementById('sourceBalanceField').classList.toggle('hidden', !isBorrow);
+      document.getElementById('formSourceBalance').required = isBorrow;
+    }
+
+    function renderSourceBalanceOptions(selectedId) {
+      const select = document.getElementById('formSourceBalance');
+      if (!select) return;
+      const target = selectedId !== undefined ? selectedId : select.value;
+      select.innerHTML = '<option value="">Select a balance...</option>' + otherBalances.map(entry =>
+        `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)} (${formatCurrency(entry.amount)})</option>`
+      ).join('');
+      if (otherBalances.some(entry => entry.id === target)) select.value = target;
     }
 
     function updateOtherMembersFields() {
@@ -3441,6 +3585,7 @@
         const checklistItemId = type === 'EXPENSE' ? '' : document.getElementById('formChecklistItem').value;
         let otherBalanceId = type !== 'EXPENSE' ? document.getElementById('formOtherBalance').value : '';
         if (!otherBalances.some(entry => entry.id === otherBalanceId)) otherBalanceId = '';
+        const borrowedFrom = type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? document.getElementById('formSourceBalance').value : '';
         const hasOtherMembers = type === 'EXPENSE' && document.getElementById('formOtherMembers').checked;
         const otherMembers = hasOtherMembers ? getOtherMemberEntries().filter(member => !member.isBlank).map(member => ({
           name: member.name,
@@ -3458,6 +3603,12 @@
         }
         if (isNaN(amount) || amount <= 0) {
           errorBox.textContent = 'Please enter a valid amount greater than 0.';
+          errorBox.classList.remove('hidden');
+          return;
+        }
+        if (fundSource === 'OTHER_BALANCE' && type === 'EXPENSE' &&
+          !otherBalances.some(entry => entry.id === borrowedFrom)) {
+          errorBox.textContent = 'Please select which balance this amount is borrowed from.';
           errorBox.classList.remove('hidden');
           return;
         }
@@ -3491,11 +3642,13 @@
               otherMembers: hasOtherMembers ? otherMembers : undefined,
               otherNote: hasOtherMembers ? otherNote : '',
               otherBalanceId: otherBalanceId || undefined,
+              borrowedFrom: borrowedFrom || undefined,
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
               checklistItemId,
               updatedAt: new Date().toISOString()
             };
             updateBalanceForTransactionEdit(previousRecord, transactions[idx]);
+            updateBorrowForTransactionEdit(previousRecord, transactions[idx]);
             saveOtherBalancesToStorage();
             showToast('Transaction updated');
           }
@@ -3513,12 +3666,14 @@
             otherMembers: hasOtherMembers ? otherMembers : undefined,
             otherNote: hasOtherMembers ? otherNote : '',
             otherBalanceId: otherBalanceId || undefined,
+            borrowedFrom: borrowedFrom || undefined,
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
             checklistItemId,
             updatedAt: new Date().toISOString()
           };
           transactions.push(newRecord);
           applyBalanceAddition(newRecord);
+          applyBorrowFromBalance(newRecord);
           saveOtherBalancesToStorage();
           showToast('Transaction added');
         }
@@ -3620,6 +3775,15 @@
       document.querySelectorAll('input[name="transType"]').forEach(radio => {
         radio.addEventListener('change', updateTransactionTypeFields);
       });
+      document.getElementById('formFundSource').addEventListener('change', updateFundSourceFields);
+
+      const borrowedDetailsModal = document.getElementById('borrowedDetailsModal');
+      const closeBorrowedDetails = () => borrowedDetailsModal.classList.add('hidden');
+      document.getElementById('borrowedChipBtn').addEventListener('click', () => {
+        borrowedDetailsModal.classList.remove('hidden');
+      });
+      document.getElementById('borrowedDetailsBackdrop').addEventListener('click', closeBorrowedDetails);
+      document.getElementById('borrowedDetailsCloseBtn').addEventListener('click', closeBorrowedDetails);
 
       // Clear all local storage button
       document.getElementById('openClearDataModalBtn').addEventListener('click', () => {
