@@ -714,7 +714,7 @@
       </div>
 
       <!-- 3. Savings Card -->
-      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-200 transition-colors">
+      <div id="savingsCard" role="button" tabindex="0" aria-haspopup="dialog" aria-controls="fundAuditModal" aria-label="View savings audit history" data-fund-history="SAVINGS" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-emerald-200 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Savings</span>
           <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -726,12 +726,13 @@
         <div>
           <div id="statSavings" class="text-2xl sm:text-3xl font-extrabold text-emerald-600">$0.00</div>
           <p id="statSavingsCount" class="text-xs text-slate-400 mt-1">0 savings entries</p>
+          <p class="text-[10px] text-emerald-700 mt-1">Click to view audit history</p>
         </div>
         <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 opacity-80"></div>
       </div>
 
       <!-- 4. Planned Fund Card -->
-      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-sky-200 transition-colors">
+      <div id="plannedFundCard" role="button" tabindex="0" aria-haspopup="dialog" aria-controls="fundAuditModal" aria-label="View planned fund audit history" data-fund-history="PLANNED_FUND" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-sky-200 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Planned Fund</span>
           <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
@@ -743,6 +744,7 @@
         <div>
           <div id="statPlannedFund" class="text-2xl sm:text-3xl font-extrabold text-sky-600">$0.00</div>
           <p id="statPlannedFundCount" class="text-xs text-slate-400 mt-1">0 planned fund entries</p>
+          <p class="text-[10px] text-sky-700 mt-1">Click to view audit history</p>
         </div>
         <div class="absolute bottom-0 left-0 right-0 h-1 bg-sky-500 opacity-80"></div>
       </div>
@@ -1039,6 +1041,25 @@
     </div>
   </div>
 
+  <div id="fundAuditModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="fundAuditTitle">
+    <div class="fixed inset-0 modal-backdrop" id="fundAuditBackdrop"></div>
+    <div class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 fade-in border border-slate-100 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+        <div>
+          <h3 id="fundAuditTitle" class="text-base font-bold text-slate-900">Fund Audit History</h3>
+          <p id="fundAuditMonth" class="text-xs text-slate-500"></p>
+        </div>
+        <button id="fundAuditCloseBtn" type="button" aria-label="Close fund audit history" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="fundAuditSummary" class="grid grid-cols-2 gap-3 mb-3 text-xs"></div>
+      <div id="fundAuditList" class="space-y-2 text-xs overflow-y-auto"></div>
+    </div>
+  </div>
+
   <div id="transactionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
     <div class="fixed inset-0 modal-backdrop" id="modalBackdrop"></div>
     <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl z-10 fade-in border border-slate-100 max-h-[95vh] overflow-y-auto">
@@ -1111,14 +1132,28 @@
           </div>
         </div>
 
-        <div>
+        <div id="fundSourceField">
           <label for="formFundSource" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Take from *</label>
           <select id="formFundSource" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
             <option value="AVAILABLE">Available Funds</option>
-            <option value="SAVINGS">Savings</option>
-            <option value="PLANNED_FUND">Planned Fund</option>
-            <option value="OTHER_BALANCE">Other Balance (Borrow)</option>
+            <option value="OTHER_BALANCE">Other Balances</option>
           </select>
+        </div>
+
+        <div id="supplementalFundingFields" class="hidden">
+          <label for="formSupplementalFundSource" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Also deduct from (Optional)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select id="formSupplementalFundSource" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <option value="">No savings or planned funds</option>
+              <option value="SAVINGS">Savings</option>
+              <option value="PLANNED_FUND">Planned funds</option>
+            </select>
+            <div class="relative">
+              <span id="supplementalCurrencyPrefix" class="absolute left-3.5 top-2.5 text-slate-400 font-semibold text-sm">$</span>
+              <input type="number" id="formSupplementalAmount" step="0.01" min="0.01" placeholder="Amount" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-semibold">
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">The remaining expense amount will be deducted from the selected other balance.</p>
         </div>
 
         <div id="sourceBalanceField" class="hidden">
@@ -1126,7 +1161,7 @@
           <select id="formSourceBalance" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
             <option value="">Select a balance...</option>
           </select>
-          <p class="text-xs text-slate-500 mt-1">The amount is added to this month's available total and subtracted from the selected balance.</p>
+          <p class="text-xs text-slate-500 mt-1">The remaining amount is added to this month's available total and subtracted from the selected balance.</p>
         </div>
 
         <!-- Description -->
@@ -1450,6 +1485,7 @@
     let typeChartInstance = null;
     let pendingConfirmAction = null;
     let pendingImportBackup = null;
+    let fundAuditOpener = null;
     const TRANSACTION_PAGE_SIZE = 20;
     let transactionCurrentPage = 1;
 
@@ -1649,6 +1685,13 @@
         if (record.checklistItemId !== undefined && typeof record.checklistItemId !== 'string') return false;
         if (record.otherBalanceId !== undefined && typeof record.otherBalanceId !== 'string') return false;
         if (record.borrowedFrom !== undefined && typeof record.borrowedFrom !== 'string') return false;
+        if (record.borrowedAmount !== undefined &&
+          (!Number.isFinite(Number(record.borrowedAmount)) || Number(record.borrowedAmount) < 0 || Number(record.borrowedAmount) > Number(record.amount))) return false;
+        if (record.supplementalFundSource !== undefined &&
+          !['SAVINGS', 'PLANNED_FUND'].includes(record.supplementalFundSource)) return false;
+        if (record.supplementalAmount !== undefined &&
+          (!Number.isFinite(Number(record.supplementalAmount)) || Number(record.supplementalAmount) <= 0 || Number(record.supplementalAmount) > Number(record.amount))) return false;
+        if ((record.supplementalFundSource === undefined) !== (record.supplementalAmount === undefined)) return false;
         if (transactionIds.has(record.id)) return false;
         transactionIds.add(record.id);
       }
@@ -1873,8 +1916,8 @@
         const currentMonthRecords = transactions.filter(record => record.date && record.date.startsWith(currentMonthKey));
         const currentMonthMetrics = calculateMonthSummary(currentMonthRecords, currentMonthKey, carryForward);
         carryForward = {
-          savings: currentMonthMetrics.futureSavings,
-          planned: currentMonthMetrics.plannedSavings,
+          savings: 0,
+          planned: 0,
           nonAllocated: currentMonthMetrics.nonAllocated
         };
       }
@@ -1901,6 +1944,12 @@
       if (normalized === 'PLANNED_FUND' || normalized === 'PLANNED_SAVING') return 'PLANNED_FUND';
       if (normalized === 'OTHER_BALANCE' || normalized === 'OTHER_EXPENSE' || normalized === 'BORROWED') return 'OTHER_BALANCE';
       return 'AVAILABLE';
+    }
+
+    function getBorrowedAmount(record) {
+      if (!record || normalizeFundSource(record.fundSource) !== 'OTHER_BALANCE') return 0;
+      if (record.borrowedAmount !== undefined) return Math.max(0, Number(record.borrowedAmount) || 0);
+      return Math.max(0, Number(record.amount) || 0);
     }
 
     function formatCurrency(amount) {
@@ -2062,15 +2111,26 @@
         } else if (fundSource === 'PLANNED_FUND') {
           plannedBudgetImpact += amt;
         } else if (fundSource === 'OTHER_BALANCE') {
-          const signedAmt = isReimbursement ? -amt : amt;
+          const signedAmt = isReimbursement ? -getBorrowedAmount(r) : getBorrowedAmount(r);
           borrowedTotal += signedAmt;
-          borrowedEntries.push({
-            sourceId: r.borrowedFrom || '',
-            sourceName: (otherBalances.find(b => b.id === r.borrowedFrom) || {}).name || 'Other balance',
-            amount: signedAmt,
-            date: r.date || '',
-            description: r.description || ''
-          });
+          if (signedAmt !== 0) {
+            borrowedEntries.push({
+              sourceId: r.borrowedFrom || '',
+              sourceName: (otherBalances.find(b => b.id === r.borrowedFrom) || {}).name || 'Other balance',
+              amount: signedAmt,
+              date: r.date || '',
+              description: r.description || ''
+            });
+          }
+        }
+
+        if (r.type === 'EXPENSE' && !isReimbursement) {
+          const supplementalAmount = Number(r.supplementalAmount) || 0;
+          if (r.supplementalFundSource === 'SAVINGS') {
+            savingsBudgetImpact += supplementalAmount;
+          } else if (r.supplementalFundSource === 'PLANNED_FUND') {
+            plannedBudgetImpact += supplementalAmount;
+          }
         }
 
         if (r.type === 'PLANNED_SAVING') {
@@ -2118,6 +2178,88 @@
     function calculateMetrics(records) {
       const carryForward = getCarryForwardValues(selectedMonthString);
       return calculateMonthSummary(records, selectedMonthString, carryForward);
+    }
+
+    function getFundAuditEntries(fundSource) {
+      const entries = [];
+
+      transactions.forEach(record => {
+        if (!record.date || record.date.substring(0, 7) !== selectedMonthString || record.reimbursementFor) return;
+        const amount = Number(record.amount) || 0;
+        let direction = '';
+        let auditAmount = 0;
+        let activity = '';
+
+        if (fundSource === 'SAVINGS' && record.type === 'SAVING') {
+          direction = 'added';
+          auditAmount = amount;
+          activity = 'Savings added';
+        } else if (fundSource === 'PLANNED_FUND' && record.type === 'PLANNED_SAVING') {
+          direction = 'added';
+          auditAmount = amount;
+          activity = 'Planned funds added';
+        } else if (record.type === 'EXPENSE' && normalizeFundSource(record.fundSource) === fundSource) {
+          direction = 'deducted';
+          auditAmount = amount;
+          activity = 'Expense paid from ' + (fundSource === 'SAVINGS' ? 'savings' : 'planned funds');
+        } else if (record.type === 'EXPENSE' && record.supplementalFundSource === fundSource) {
+          direction = 'deducted';
+          auditAmount = Number(record.supplementalAmount) || 0;
+          activity = 'Part of expense paid from ' + (fundSource === 'SAVINGS' ? 'savings' : 'planned funds');
+        }
+
+        if (auditAmount > 0) {
+          entries.push({
+            date: record.date,
+            description: record.description || 'Transaction',
+            direction,
+            amount: auditAmount,
+            activity
+          });
+        }
+      });
+
+      return entries.sort((a, b) =>
+        b.date.localeCompare(a.date) || a.description.localeCompare(b.description)
+      );
+    }
+
+    function openFundAudit(fundSource) {
+      fundAuditOpener = document.activeElement;
+      const isSavings = fundSource === 'SAVINGS';
+      const fundName = isSavings ? 'Savings' : 'Planned Fund';
+      const [year, month] = selectedMonthString.split('-').map(Number);
+      const monthLabel = new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+        month: 'long',
+        year: 'numeric'
+      });
+      const entries = getFundAuditEntries(fundSource);
+      const totalAdded = entries.reduce((total, entry) => total + (entry.direction === 'added' ? entry.amount : 0), 0);
+      const totalDeducted = entries.reduce((total, entry) => total + (entry.direction === 'deducted' ? entry.amount : 0), 0);
+
+      document.getElementById('fundAuditTitle').textContent = fundName + ' Audit History';
+      document.getElementById('fundAuditMonth').textContent = monthLabel;
+      document.getElementById('fundAuditSummary').innerHTML =
+        '<div class="rounded-xl bg-emerald-50 p-3"><div class="text-slate-500">Added</div><div class="mt-1 font-bold text-emerald-700">' + formatCurrency(totalAdded) + '</div></div>' +
+        '<div class="rounded-xl bg-rose-50 p-3"><div class="text-slate-500">Deducted</div><div class="mt-1 font-bold text-rose-700">' + formatCurrency(totalDeducted) + '</div></div>';
+      document.getElementById('fundAuditList').innerHTML = entries.length ? entries.map(entry =>
+        '<div class="flex items-start justify-between gap-3 rounded-xl border border-slate-100 p-3">' +
+        '<div class="min-w-0">' +
+        '<div class="font-semibold text-slate-800">' + escapeHtml(entry.description) + '</div>' +
+        '<div class="mt-0.5 text-slate-500">' + escapeHtml(entry.activity) + ' · ' + escapeHtml(entry.date) + '</div>' +
+        '</div>' +
+        '<span class="shrink-0 font-bold ' + (entry.direction === 'added' ? 'text-emerald-700' : 'text-rose-700') + '">' +
+        (entry.direction === 'added' ? '+' : '−') + formatCurrency(entry.amount) + '</span>' +
+        '</div>'
+      ).join('') : '<p class="py-4 text-center text-slate-500">No savings or planned-fund activity this month.</p>';
+      document.getElementById('fundAuditModal').classList.remove('hidden');
+      document.getElementById('fundAuditCloseBtn').focus();
+    }
+
+    function closeFundAudit() {
+      document.getElementById('fundAuditModal').classList.add('hidden');
+      if (fundAuditOpener && fundAuditOpener.isConnected) fundAuditOpener.focus();
+      fundAuditOpener = null;
     }
 
     function printMonthlySummary() {
@@ -2898,7 +3040,7 @@
       const entry = otherBalances.find(b => b.id === record.borrowedFrom);
       if (entry) {
         const previousAmount = Number(entry.amount);
-        entry.amount = Math.round((previousAmount - Number(record.amount)) * 100) / 100;
+        entry.amount = Math.round((previousAmount - getBorrowedAmount(record)) * 100) / 100;
         addBalanceAudit(entry, 'Borrowed for expense', previousAmount, entry.amount,
           `${record.description} (${record.date})`, record.id);
       }
@@ -2909,7 +3051,7 @@
       const entry = otherBalances.find(b => b.id === record.borrowedFrom);
       if (entry) {
         const previousAmount = Number(entry.amount);
-        entry.amount = Math.round((previousAmount + Number(record.amount)) * 100) / 100;
+        entry.amount = Math.round((previousAmount + getBorrowedAmount(record)) * 100) / 100;
         addBalanceAudit(entry, 'Borrow removed', previousAmount, entry.amount,
           `${record.description} (${record.date})`, record.id);
       }
@@ -2923,7 +3065,7 @@
 
       if (previousEntry && updatedEntry && previousEntry.id === updatedEntry.id) {
         const previousAmount = Number(previousEntry.amount);
-        const amount = Math.round((previousAmount + Number(previousRecord.amount) - Number(updatedRecord.amount)) * 100) / 100;
+        const amount = Math.round((previousAmount + getBorrowedAmount(previousRecord) - getBorrowedAmount(updatedRecord)) * 100) / 100;
         if (amount !== previousAmount) {
           previousEntry.amount = amount;
           addBalanceAudit(previousEntry, 'Borrowed amount updated', previousAmount, amount,
@@ -3041,6 +3183,7 @@
       document.getElementById('transactionForm').reset();
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
+      document.getElementById('supplementalCurrencyPrefix').textContent = currentCurrency;
       document.getElementById('formFundSource').value = 'AVAILABLE';
       renderOtherMemberRows();
       setOtherMembersDisabled(false);
@@ -3074,7 +3217,17 @@
       document.getElementById('formCategory').value = item.categoryId;
       document.getElementById('formNotes').value = item.notes || '';
       document.getElementById('formExpectedDate').value = item.expectedDate || '';
-      document.getElementById('formFundSource').value = normalizeFundSource(item.fundSource);
+      const normalizedFundSource = normalizeFundSource(item.fundSource);
+      const fundSourceSelect = document.getElementById('formFundSource');
+      if (normalizedFundSource === 'SAVINGS' || normalizedFundSource === 'PLANNED_FUND') {
+        fundSourceSelect.value = 'OTHER_BALANCE';
+        document.getElementById('formSupplementalFundSource').value = normalizedFundSource;
+        document.getElementById('formSupplementalAmount').value = item.amount;
+      } else {
+        fundSourceSelect.value = normalizedFundSource;
+        document.getElementById('formSupplementalFundSource').value = item.supplementalFundSource || '';
+        document.getElementById('formSupplementalAmount').value = item.supplementalAmount || '';
+      }
       document.getElementById('formOtherMembers').checked = Number(item.otherAmount) > 0;
       const otherMembers = Array.isArray(item.otherMembers) && item.otherMembers.length ?
         item.otherMembers :
@@ -3085,6 +3238,7 @@
       renderOtherMemberRows(otherMembers);
       document.getElementById('formOtherNote').value = item.otherNote || '';
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
+      document.getElementById('supplementalCurrencyPrefix').textContent = currentCurrency;
       renderChecklistLinkOptions(item.checklistItemId || '');
       document.getElementById('formChecklistItem').value = item.checklistItemId || '';
       renderOtherBalanceOptions(item.otherBalanceId || '');
@@ -3125,23 +3279,35 @@
 
     function updateTransactionTypeFields() {
       const selectedType = document.querySelector('input[name="transType"]:checked')?.value;
+      const isExpense = selectedType === 'EXPENSE';
       document.getElementById('plannedSavingFields').classList.toggle('hidden', selectedType !== 'PLANNED_SAVING');
-      document.getElementById('savingChecklistFields').classList.toggle('hidden', selectedType === 'EXPENSE');
-      document.getElementById('otherMembersSection').classList.toggle('hidden', selectedType !== 'EXPENSE');
+      document.getElementById('savingChecklistFields').classList.toggle('hidden', isExpense);
+      document.getElementById('otherMembersSection').classList.toggle('hidden', !isExpense);
+      document.getElementById('fundSourceField').classList.toggle('hidden', !isExpense);
       const otherBalanceOption = document.querySelector('#formFundSource option[value="OTHER_BALANCE"]');
       if (otherBalanceOption) {
-        otherBalanceOption.disabled = selectedType !== 'EXPENSE';
-        if (selectedType !== 'EXPENSE' && document.getElementById('formFundSource').value === 'OTHER_BALANCE') {
+        otherBalanceOption.disabled = !isExpense;
+        if (!isExpense && document.getElementById('formFundSource').value === 'OTHER_BALANCE') {
           document.getElementById('formFundSource').value = 'AVAILABLE';
         }
+      }
+      if (!isExpense) {
+        document.getElementById('formSupplementalFundSource').value = '';
+        document.getElementById('formSupplementalAmount').value = '';
       }
       updateFundSourceFields();
     }
 
     function updateFundSourceFields() {
-      const isBorrow = document.getElementById('formFundSource').value === 'OTHER_BALANCE';
-      document.getElementById('sourceBalanceField').classList.toggle('hidden', !isBorrow);
-      document.getElementById('formSourceBalance').required = isBorrow;
+      const isOtherBalanceExpense =
+        document.querySelector('input[name="transType"]:checked')?.value === 'EXPENSE' &&
+        document.getElementById('formFundSource').value === 'OTHER_BALANCE';
+      const transactionAmount = Number(document.getElementById('formAmount').value) || 0;
+      const supplementalAmount = Number(document.getElementById('formSupplementalAmount').value) || 0;
+      const borrowedAmount = Math.max(0, transactionAmount - supplementalAmount);
+      document.getElementById('supplementalFundingFields').classList.toggle('hidden', !isOtherBalanceExpense);
+      document.getElementById('sourceBalanceField').classList.toggle('hidden', !isOtherBalanceExpense || borrowedAmount <= 0);
+      document.getElementById('formSourceBalance').required = isOtherBalanceExpense && borrowedAmount > 0;
     }
 
     function renderSourceBalanceOptions(selectedId) {
@@ -3322,6 +3488,8 @@
       // Currency selector change
       document.getElementById('currencySelector').addEventListener('change', (e) => {
         currentCurrency = e.target.value;
+        document.getElementById('currencyInputPrefix').textContent = currentCurrency;
+        document.getElementById('supplementalCurrencyPrefix').textContent = currentCurrency;
         saveCurrencyToStorage();
         renderDashboard();
         showToast(`Currency changed to ${currentCurrency}`);
@@ -3581,11 +3749,19 @@
 
         const typeElem = document.querySelector('input[name="transType"]:checked');
         const type = typeElem ? typeElem.value : 'EXPENSE';
-        const fundSource = normalizeFundSource(document.getElementById('formFundSource').value);
+        const fundSourceSelect = document.getElementById('formFundSource');
+        const fundSource = normalizeFundSource(fundSourceSelect.value);
+        const supplementalFundSource = type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ?
+          document.getElementById('formSupplementalFundSource').value : '';
+        const enteredSupplementalAmount = parseFloat(document.getElementById('formSupplementalAmount').value);
+        const supplementalAmount = supplementalFundSource && Number.isFinite(enteredSupplementalAmount) ?
+          Math.round(enteredSupplementalAmount * 100) / 100 : 0;
+        const borrowedAmount = type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ?
+          Math.max(0, Math.round((amount - supplementalAmount) * 100) / 100) : 0;
         const checklistItemId = type === 'EXPENSE' ? '' : document.getElementById('formChecklistItem').value;
         let otherBalanceId = type !== 'EXPENSE' ? document.getElementById('formOtherBalance').value : '';
         if (!otherBalances.some(entry => entry.id === otherBalanceId)) otherBalanceId = '';
-        const borrowedFrom = type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? document.getElementById('formSourceBalance').value : '';
+        const borrowedFrom = borrowedAmount > 0 ? document.getElementById('formSourceBalance').value : '';
         const hasOtherMembers = type === 'EXPENSE' && document.getElementById('formOtherMembers').checked;
         const otherMembers = hasOtherMembers ? getOtherMemberEntries().filter(member => !member.isBlank).map(member => ({
           name: member.name,
@@ -3606,7 +3782,18 @@
           errorBox.classList.remove('hidden');
           return;
         }
-        if (fundSource === 'OTHER_BALANCE' && type === 'EXPENSE' &&
+        if (supplementalFundSource && (!Number.isFinite(enteredSupplementalAmount) || enteredSupplementalAmount <= 0 || supplementalAmount > amount)) {
+          errorBox.textContent = 'Enter a valid savings or planned-fund amount no greater than the expense amount.';
+          errorBox.classList.remove('hidden');
+          return;
+        }
+        if (!supplementalFundSource && Number.isFinite(enteredSupplementalAmount) && enteredSupplementalAmount > 0 &&
+          fundSource === 'OTHER_BALANCE' && type === 'EXPENSE') {
+          errorBox.textContent = 'Select savings or planned funds for the custom amount.';
+          errorBox.classList.remove('hidden');
+          return;
+        }
+        if (borrowedAmount > 0 &&
           !otherBalances.some(entry => entry.id === borrowedFrom)) {
           errorBox.textContent = 'Please select which balance this amount is borrowed from.';
           errorBox.classList.remove('hidden');
@@ -3643,6 +3830,9 @@
               otherNote: hasOtherMembers ? otherNote : '',
               otherBalanceId: otherBalanceId || undefined,
               borrowedFrom: borrowedFrom || undefined,
+              borrowedAmount: type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? borrowedAmount : undefined,
+              supplementalFundSource: supplementalFundSource || undefined,
+              supplementalAmount: supplementalFundSource ? supplementalAmount : undefined,
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
               checklistItemId,
               updatedAt: new Date().toISOString()
@@ -3667,6 +3857,9 @@
             otherNote: hasOtherMembers ? otherNote : '',
             otherBalanceId: otherBalanceId || undefined,
             borrowedFrom: borrowedFrom || undefined,
+            borrowedAmount: type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? borrowedAmount : undefined,
+            supplementalFundSource: supplementalFundSource || undefined,
+            supplementalAmount: supplementalFundSource ? supplementalAmount : undefined,
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
             checklistItemId,
             updatedAt: new Date().toISOString()
@@ -3776,6 +3969,8 @@
         radio.addEventListener('change', updateTransactionTypeFields);
       });
       document.getElementById('formFundSource').addEventListener('change', updateFundSourceFields);
+      document.getElementById('formAmount').addEventListener('input', updateFundSourceFields);
+      document.getElementById('formSupplementalAmount').addEventListener('input', updateFundSourceFields);
 
       const borrowedDetailsModal = document.getElementById('borrowedDetailsModal');
       const closeBorrowedDetails = () => borrowedDetailsModal.classList.add('hidden');
@@ -3784,6 +3979,23 @@
       });
       document.getElementById('borrowedDetailsBackdrop').addEventListener('click', closeBorrowedDetails);
       document.getElementById('borrowedDetailsCloseBtn').addEventListener('click', closeBorrowedDetails);
+
+      document.querySelectorAll('[data-fund-history]').forEach(card => {
+        card.addEventListener('click', () => openFundAudit(card.dataset.fundHistory));
+        card.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openFundAudit(card.dataset.fundHistory);
+          }
+        });
+      });
+      document.getElementById('fundAuditBackdrop').addEventListener('click', closeFundAudit);
+      document.getElementById('fundAuditCloseBtn').addEventListener('click', closeFundAudit);
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !document.getElementById('fundAuditModal').classList.contains('hidden')) {
+          closeFundAudit();
+        }
+      });
 
       // Clear all local storage button
       document.getElementById('openClearDataModalBtn').addEventListener('click', () => {
