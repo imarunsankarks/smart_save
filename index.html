@@ -1140,6 +1140,20 @@
           </select>
         </div>
 
+        <div id="availableBorrowField" class="hidden">
+          <label for="formAvailableBorrowBalance" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Borrow shortfall from Balance (Optional)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select id="formAvailableBorrowBalance" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <option value="">Don't borrow</option>
+            </select>
+            <div class="relative">
+              <span id="availableBorrowCurrencyPrefix" class="absolute left-3.5 top-2.5 text-slate-400 font-semibold text-sm">$</span>
+              <input type="number" id="formAvailableBorrowAmount" step="0.01" min="0.01" placeholder="Amount" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-semibold">
+            </div>
+          </div>
+          <p id="availableBorrowHint" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+
         <div id="supplementalFundingFields" class="hidden">
           <label for="formSupplementalFundSource" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Also deduct from (Optional)</label>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1152,6 +1166,13 @@
               <span id="supplementalCurrencyPrefix" class="absolute left-3.5 top-2.5 text-slate-400 font-semibold text-sm">$</span>
               <input type="number" id="formSupplementalAmount" step="0.01" min="0.01" placeholder="Amount" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-semibold">
             </div>
+          </div>
+          <div id="supplementalBalanceField" class="hidden mt-3">
+            <label for="formSupplementalBalance" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Deduct that amount from Balance (Optional)</label>
+            <select id="formSupplementalBalance" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <option value="">Don't deduct from a balance</option>
+            </select>
+            <p class="text-xs text-slate-500 mt-1">Only balances that received savings/planned funds in the transaction's month are listed — e.g. SBI.</p>
           </div>
           <p class="text-xs text-slate-500 mt-1">The remaining expense amount will be deducted from the selected other balance.</p>
         </div>
@@ -1692,6 +1713,8 @@
         if (record.supplementalAmount !== undefined &&
           (!Number.isFinite(Number(record.supplementalAmount)) || Number(record.supplementalAmount) <= 0 || Number(record.supplementalAmount) > Number(record.amount))) return false;
         if ((record.supplementalFundSource === undefined) !== (record.supplementalAmount === undefined)) return false;
+        if (record.supplementalBalanceId !== undefined &&
+          (record.supplementalFundSource === undefined || typeof record.supplementalBalanceId !== 'string')) return false;
         if (transactionIds.has(record.id)) return false;
         transactionIds.add(record.id);
       }
@@ -1701,6 +1724,7 @@
       const reimbursedKeys = new Set();
       for (const record of records) {
         if (record.borrowedFrom !== undefined && !balanceIds.has(record.borrowedFrom)) return false;
+        if (record.supplementalBalanceId !== undefined && !balanceIds.has(record.supplementalBalanceId)) return false;
         if (!record.reimbursementFor) continue;
         const sourceRecord = recordById.get(record.reimbursementFor);
         if (!sourceRecord || sourceRecord.type !== 'EXPENSE' || !sourceRecord.otherAmount) return false;
@@ -1947,9 +1971,13 @@
     }
 
     function getBorrowedAmount(record) {
-      if (!record || normalizeFundSource(record.fundSource) !== 'OTHER_BALANCE') return 0;
-      if (record.borrowedAmount !== undefined) return Math.max(0, Number(record.borrowedAmount) || 0);
-      return Math.max(0, Number(record.amount) || 0);
+      if (!record) return 0;
+      if (record.borrowedFrom && Number.isFinite(Number(record.borrowedAmount))) {
+        return Math.max(0, Number(record.borrowedAmount));
+      }
+      if (normalizeFundSource(record.fundSource) !== 'OTHER_BALANCE') return 0;
+      const supplemental = Number(record.supplementalAmount) || 0;
+      return Math.max(0, (Number(record.amount) || 0) - supplemental);
     }
 
     function formatCurrency(amount) {
@@ -2093,6 +2121,7 @@
       let savingsBudgetImpact = 0;
       let plannedBudgetImpact = 0;
       let borrowedTotal = 0;
+      let availableBorrowedTotal = 0;
       const borrowedEntries = [];
       let countExpense = 0;
       let countSavings = 0;
@@ -2106,6 +2135,18 @@
 
         if (fundSource === 'AVAILABLE') {
           availableBudgetImpact += isReimbursement ? -amt : amt;
+          const availableBorrow = (!isReimbursement && r.type === 'EXPENSE' && r.borrowedFrom) ? getBorrowedAmount(r) : 0;
+          if (availableBorrow !== 0) {
+            borrowedTotal += availableBorrow;
+            availableBorrowedTotal += availableBorrow;
+            borrowedEntries.push({
+              sourceId: r.borrowedFrom || '',
+              sourceName: (otherBalances.find(b => b.id === r.borrowedFrom) || {}).name || 'Other balance',
+              amount: availableBorrow,
+              date: r.date || '',
+              description: r.description || ''
+            });
+          }
         } else if (fundSource === 'SAVINGS') {
           savingsBudgetImpact += amt;
         } else if (fundSource === 'PLANNED_FUND') {
@@ -2153,7 +2194,7 @@
       const totalAvailable = monthIncome + carryForward.savings + carryForward.planned + carryForward.nonAllocated + borrowedTotal;
       const futureSavingsBalance = carryForward.savings + futureSavings - savingsBudgetImpact;
       const plannedSavingsBalance = carryForward.planned + plannedSavings - plannedBudgetImpact;
-      const nonAllocated = monthIncome + carryForward.nonAllocated - availableBudgetImpact;
+      const nonAllocated = monthIncome + availableBorrowedTotal + carryForward.nonAllocated - availableBudgetImpact;
 
       return {
         totalAvailable,
@@ -2178,6 +2219,16 @@
     function calculateMetrics(records) {
       const carryForward = getCarryForwardValues(selectedMonthString);
       return calculateMonthSummary(records, selectedMonthString, carryForward);
+    }
+
+    function getFundBucketBalance(monthStr, fundSource, excludeId) {
+      const carryForward = getCarryForwardValues(monthStr);
+      const records = transactions.filter(record =>
+        typeof record.date === 'string' && record.date.startsWith(monthStr) && record.id !== excludeId);
+      const summary = calculateMonthSummary(records, monthStr, carryForward);
+      if (fundSource === 'PLANNED_FUND') return summary.plannedSavings;
+      if (fundSource === 'AVAILABLE') return summary.nonAllocated;
+      return summary.futureSavings;
     }
 
     function getFundAuditEntries(fundSource) {
@@ -2932,6 +2983,8 @@
       totalEl.textContent = `${formatCurrency(total)} total`;
       renderOtherBalanceOptions();
       renderSourceBalanceOptions();
+      renderSupplementalBalanceOptions();
+      renderAvailableBorrowOptions();
       list.innerHTML = otherBalances.length ? otherBalances.map(entry =>
         '<div class="py-2.5">' +
         '<div class="flex items-center gap-3">' +
@@ -2947,14 +3000,22 @@
         '<details class="mt-1 text-xs text-slate-500">' +
         '<summary class="w-fit cursor-pointer hover:text-slate-700">Audit history (' + (Array.isArray(entry.audit) ? entry.audit.length : 0) + ')</summary>' +
         '<ol class="mt-2 space-y-2 pl-4">' +
-        (Array.isArray(entry.audit) ? [...entry.audit].reverse().map(event =>
-          '<li><span class="font-medium text-slate-700">' + escapeHtml(event.action) + '</span> · ' +
+        (Array.isArray(entry.audit) ? [...entry.audit].reverse().map((event, i) => {
+          const auditIndex = entry.audit.length - 1 - i;
+          return '<li class="flex items-start gap-2">' +
+          '<span class="min-w-0 flex-1"><span class="font-medium text-slate-700">' + escapeHtml(event.action) + '</span> · ' +
           escapeHtml(new Date(event.timestamp).toLocaleString()) + ' · ' +
           (event.previousAmount === null ? '—' : formatCurrency(event.previousAmount)) + ' → ' + formatCurrency(event.amount) +
           (event.note ? '<div class="mt-0.5 break-words">' + escapeHtml(event.note) + '</div>' : '') +
-          '</li>'
-        ).join('') : '') +
+          '</span>' +
+          '<button type="button" data-audit-clear="' + escapeHtml(entry.id) + '" data-audit-index="' + auditIndex + '" title="Remove entry" aria-label="Remove audit entry" class="shrink-0 p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+          '</button>' +
+          '</li>';
+        }).join('') : '') +
         '</ol>' +
+        (Array.isArray(entry.audit) && entry.audit.length ?
+          '<button type="button" data-audit-clear-all="' + escapeHtml(entry.id) + '" class="mt-1 ml-4 text-[10px] font-semibold uppercase tracking-wider text-rose-500 hover:text-rose-600 cursor-pointer">Clear all</button>' : '') +
         '</details>' +
         '</div>'
       ).join('') : '<p class="py-3 text-sm text-slate-500">No balances added yet.</p>';
@@ -3078,6 +3139,50 @@
       applyBorrowFromBalance(updatedRecord);
     }
 
+    function applySupplementalDeduction(record) {
+      if (!record || !record.supplementalBalanceId) return;
+      const entry = otherBalances.find(b => b.id === record.supplementalBalanceId);
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount - (Number(record.supplementalAmount) || 0)) * 100) / 100;
+        addBalanceAudit(entry, 'Savings funds deducted', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
+    }
+
+    function revertSupplementalDeduction(record) {
+      if (!record || !record.supplementalBalanceId) return;
+      const entry = otherBalances.find(b => b.id === record.supplementalBalanceId);
+      if (entry) {
+        const previousAmount = Number(entry.amount);
+        entry.amount = Math.round((previousAmount + (Number(record.supplementalAmount) || 0)) * 100) / 100;
+        addBalanceAudit(entry, 'Savings funds deduction removed', previousAmount, entry.amount,
+          `${record.description} (${record.date})`, record.id);
+      }
+    }
+
+    function updateSupplementalDeductionForEdit(previousRecord, updatedRecord) {
+      const previousEntry = previousRecord.supplementalBalanceId ?
+        otherBalances.find(entry => entry.id === previousRecord.supplementalBalanceId) : null;
+      const updatedEntry = updatedRecord.supplementalBalanceId ?
+        otherBalances.find(entry => entry.id === updatedRecord.supplementalBalanceId) : null;
+
+      if (previousEntry && updatedEntry && previousEntry.id === updatedEntry.id) {
+        const previousAmount = Number(previousEntry.amount);
+        const amount = Math.round((previousAmount + (Number(previousRecord.supplementalAmount) || 0) -
+          (Number(updatedRecord.supplementalAmount) || 0)) * 100) / 100;
+        if (amount !== previousAmount) {
+          previousEntry.amount = amount;
+          addBalanceAudit(previousEntry, 'Savings funds deduction updated', previousAmount, amount,
+            `${updatedRecord.description} (${updatedRecord.date})`, updatedRecord.id);
+        }
+        return;
+      }
+
+      revertSupplementalDeduction(previousRecord);
+      applySupplementalDeduction(updatedRecord);
+    }
+
     function bindCollapsibleSections() {
       const checklistToggle = document.getElementById('toggleChecklistSectionBtn');
       const checklistContent = document.getElementById('checklistSectionContent');
@@ -3184,7 +3289,10 @@
       document.getElementById('formErrorMessage').classList.add('hidden');
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       document.getElementById('supplementalCurrencyPrefix').textContent = currentCurrency;
+      document.getElementById('availableBorrowCurrencyPrefix').textContent = currentCurrency;
       document.getElementById('formFundSource').value = 'AVAILABLE';
+      document.getElementById('formAvailableBorrowBalance').value = '';
+      document.getElementById('formAvailableBorrowAmount').value = '';
       renderOtherMemberRows();
       setOtherMembersDisabled(false);
       updateTransactionTypeFields();
@@ -3192,6 +3300,8 @@
       renderChecklistLinkOptions();
       renderOtherBalanceOptions('');
       renderSourceBalanceOptions('');
+      renderSupplementalBalanceOptions('');
+      renderAvailableBorrowOptions('');
 
       const today = new Date().toISOString().split('T')[0];
       if (defaultDate) {
@@ -3201,6 +3311,7 @@
       } else {
         document.getElementById('formDate').value = `${selectedMonthString}-01`;
       }
+      updateFundSourceFields();
 
       document.getElementById('transactionModal').classList.remove('hidden');
     }
@@ -3227,6 +3338,8 @@
         fundSourceSelect.value = normalizedFundSource;
         document.getElementById('formSupplementalFundSource').value = item.supplementalFundSource || '';
         document.getElementById('formSupplementalAmount').value = item.supplementalAmount || '';
+        document.getElementById('formAvailableBorrowAmount').value =
+          normalizedFundSource === 'AVAILABLE' ? (item.borrowedAmount || '') : '';
       }
       document.getElementById('formOtherMembers').checked = Number(item.otherAmount) > 0;
       const otherMembers = Array.isArray(item.otherMembers) && item.otherMembers.length ?
@@ -3239,10 +3352,13 @@
       document.getElementById('formOtherNote').value = item.otherNote || '';
       document.getElementById('currencyInputPrefix').textContent = currentCurrency;
       document.getElementById('supplementalCurrencyPrefix').textContent = currentCurrency;
+      document.getElementById('availableBorrowCurrencyPrefix').textContent = currentCurrency;
       renderChecklistLinkOptions(item.checklistItemId || '');
       document.getElementById('formChecklistItem').value = item.checklistItemId || '';
       renderOtherBalanceOptions(item.otherBalanceId || '');
       renderSourceBalanceOptions(item.borrowedFrom || '');
+      renderSupplementalBalanceOptions(item.supplementalBalanceId || '');
+      renderAvailableBorrowOptions(normalizedFundSource === 'AVAILABLE' ? (item.borrowedFrom || '') : '');
 
       const radios = document.getElementsByName('transType');
       for (const r of radios) {
@@ -3264,9 +3380,10 @@
         removedRecords.forEach(record => {
           revertBalanceAddition(record);
           revertBorrowFromBalance(record);
+          revertSupplementalDeduction(record);
         });
         transactions = transactions.filter(t => t.id !== id && t.reimbursementFor !== id);
-        if (removedRecords.some(r => r.otherBalanceId || r.borrowedFrom)) saveOtherBalancesToStorage();
+        if (removedRecords.some(r => r.otherBalanceId || r.borrowedFrom || r.supplementalBalanceId)) saveOtherBalancesToStorage();
         saveTransactionsToStorage();
         renderDashboard();
         showToast('Transaction removed successfully');
@@ -3294,6 +3411,9 @@
       if (!isExpense) {
         document.getElementById('formSupplementalFundSource').value = '';
         document.getElementById('formSupplementalAmount').value = '';
+        document.getElementById('formSupplementalBalance').value = '';
+        document.getElementById('formAvailableBorrowBalance').value = '';
+        document.getElementById('formAvailableBorrowAmount').value = '';
       }
       updateFundSourceFields();
     }
@@ -3306,8 +3426,32 @@
       const supplementalAmount = Number(document.getElementById('formSupplementalAmount').value) || 0;
       const borrowedAmount = Math.max(0, transactionAmount - supplementalAmount);
       document.getElementById('supplementalFundingFields').classList.toggle('hidden', !isOtherBalanceExpense);
+      const supplementalSource = isOtherBalanceExpense ? document.getElementById('formSupplementalFundSource').value : '';
+      document.getElementById('supplementalBalanceField').classList.toggle('hidden', !supplementalSource);
       document.getElementById('sourceBalanceField').classList.toggle('hidden', !isOtherBalanceExpense || borrowedAmount <= 0);
       document.getElementById('formSourceBalance').required = isOtherBalanceExpense && borrowedAmount > 0;
+
+      const isAvailableExpense =
+        document.querySelector('input[name="transType"]:checked')?.value === 'EXPENSE' &&
+        document.getElementById('formFundSource').value === 'AVAILABLE';
+      let availableShortfall = 0;
+      if (isAvailableExpense && transactionAmount > 0) {
+        const dateValue = document.getElementById('formDate').value;
+        const monthStr = dateValue && dateValue.length >= 7 ? dateValue.substring(0, 7) : selectedMonthString;
+        const editId = document.getElementById('editTransactionId').value || null;
+        const availableBalance = getFundBucketBalance(monthStr, 'AVAILABLE', editId);
+        availableShortfall = Math.max(0, Math.round((transactionAmount - availableBalance) * 100) / 100);
+      }
+      const borrowField = document.getElementById('availableBorrowField');
+      borrowField.classList.toggle('hidden', availableShortfall <= 0);
+      if (availableShortfall > 0) {
+        document.getElementById('availableBorrowHint').textContent =
+          `Available funds cover ${formatCurrency(Math.max(0, Math.round((transactionAmount - availableShortfall) * 100) / 100))} — shortfall ${formatCurrency(availableShortfall)}. The borrowed amount is added to this month's available total and deducted from the chosen balance.`;
+        const borrowAmountInput = document.getElementById('formAvailableBorrowAmount');
+        if (!borrowAmountInput.value) borrowAmountInput.value = availableShortfall;
+      } else {
+        document.getElementById('availableBorrowHint').textContent = '';
+      }
     }
 
     function renderSourceBalanceOptions(selectedId) {
@@ -3318,6 +3462,41 @@
         `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)} (${formatCurrency(entry.amount)})</option>`
       ).join('');
       if (otherBalances.some(entry => entry.id === target)) select.value = target;
+    }
+
+    function renderAvailableBorrowOptions(selectedId) {
+      const select = document.getElementById('formAvailableBorrowBalance');
+      if (!select) return;
+      const target = selectedId !== undefined ? selectedId : select.value;
+      select.innerHTML = '<option value="">Don\'t borrow</option>' + otherBalances.map(entry =>
+        `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)} (${formatCurrency(entry.amount)})</option>`
+      ).join('');
+      if (otherBalances.some(entry => entry.id === target)) select.value = target;
+    }
+
+    function renderSupplementalBalanceOptions(selectedId) {
+      const select = document.getElementById('formSupplementalBalance');
+      if (!select) return;
+      const target = selectedId !== undefined ? selectedId : select.value;
+      const fundSource = document.getElementById('formSupplementalFundSource').value;
+      const targetType = fundSource === 'PLANNED_FUND' ? 'PLANNED_SAVING' : 'SAVING';
+      const dateValue = document.getElementById('formDate').value;
+      const month = dateValue && dateValue.length >= 7 ? dateValue.substring(0, 7) : selectedMonthString;
+      const fundedIds = new Set(
+        transactions
+          .filter(record => record.type === targetType && record.otherBalanceId &&
+            typeof record.date === 'string' && record.date.startsWith(month))
+          .map(record => record.otherBalanceId)
+      );
+      let entries = otherBalances.filter(entry => fundedIds.has(entry.id));
+      if (target && !entries.some(entry => entry.id === target)) {
+        const stored = otherBalances.find(entry => entry.id === target);
+        if (stored) entries = entries.concat([stored]);
+      }
+      select.innerHTML = '<option value="">Don\'t deduct from a balance</option>' + entries.map(entry =>
+        `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)} (${formatCurrency(entry.amount)})</option>`
+      ).join('');
+      if (entries.some(entry => entry.id === target)) select.value = target;
     }
 
     function updateOtherMembersFields() {
@@ -3762,6 +3941,24 @@
         let otherBalanceId = type !== 'EXPENSE' ? document.getElementById('formOtherBalance').value : '';
         if (!otherBalances.some(entry => entry.id === otherBalanceId)) otherBalanceId = '';
         const borrowedFrom = borrowedAmount > 0 ? document.getElementById('formSourceBalance').value : '';
+        const isAvailableExpense = type === 'EXPENSE' && fundSource === 'AVAILABLE';
+        let availableBorrowAmount = 0;
+        let availableBorrowBalanceId = '';
+        if (isAvailableExpense && date) {
+          const availBalance = getFundBucketBalance(date.substring(0, 7), 'AVAILABLE', editId || null);
+          const shortfall = Math.max(0, Math.round((amount - availBalance) * 100) / 100);
+          if (shortfall > 0) {
+            availableBorrowBalanceId = document.getElementById('formAvailableBorrowBalance').value;
+            if (!otherBalances.some(entry => entry.id === availableBorrowBalanceId)) availableBorrowBalanceId = '';
+            const enteredAvailBorrow = parseFloat(document.getElementById('formAvailableBorrowAmount').value);
+            availableBorrowAmount = Number.isFinite(enteredAvailBorrow) ? Math.round(enteredAvailBorrow * 100) / 100 : 0;
+          }
+        }
+        const recordBorrowedFrom = fundSource === 'OTHER_BALANCE' ? borrowedFrom : availableBorrowBalanceId;
+        const recordBorrowedAmount = fundSource === 'OTHER_BALANCE' ? borrowedAmount :
+          (availableBorrowBalanceId ? availableBorrowAmount : 0);
+        let supplementalBalanceId = supplementalFundSource ? document.getElementById('formSupplementalBalance').value : '';
+        if (!otherBalances.some(entry => entry.id === supplementalBalanceId)) supplementalBalanceId = '';
         const hasOtherMembers = type === 'EXPENSE' && document.getElementById('formOtherMembers').checked;
         const otherMembers = hasOtherMembers ? getOtherMemberEntries().filter(member => !member.isBlank).map(member => ({
           name: member.name,
@@ -3793,11 +3990,39 @@
           errorBox.classList.remove('hidden');
           return;
         }
+        if (supplementalFundSource && date) {
+          const bucketBalance = getFundBucketBalance(date.substring(0, 7), supplementalFundSource, editId || null);
+          const bucketLabel = supplementalFundSource === 'PLANNED_FUND' ? 'planned funds' : 'savings';
+          if (supplementalAmount > bucketBalance) {
+            errorBox.textContent = `The ${bucketLabel} amount can't exceed this month's ${bucketLabel} balance (${formatCurrency(Math.max(0, bucketBalance))}).`;
+            errorBox.classList.remove('hidden');
+            return;
+          }
+        }
         if (borrowedAmount > 0 &&
           !otherBalances.some(entry => entry.id === borrowedFrom)) {
           errorBox.textContent = 'Please select which balance this amount is borrowed from.';
           errorBox.classList.remove('hidden');
           return;
+        }
+        if (isAvailableExpense) {
+          const enteredAvailBorrow = parseFloat(document.getElementById('formAvailableBorrowAmount').value);
+          const borrowFieldVisible = !document.getElementById('availableBorrowField').classList.contains('hidden');
+          if (borrowFieldVisible && !availableBorrowBalanceId && Number.isFinite(enteredAvailBorrow) && enteredAvailBorrow > 0) {
+            errorBox.textContent = 'Select which balance to borrow the shortfall from.';
+            errorBox.classList.remove('hidden');
+            return;
+          }
+          if (borrowFieldVisible && availableBorrowBalanceId && availableBorrowAmount <= 0) {
+            errorBox.textContent = 'Enter a valid amount to borrow.';
+            errorBox.classList.remove('hidden');
+            return;
+          }
+          if (availableBorrowAmount > amount) {
+            errorBox.textContent = 'The borrowed amount can\'t exceed the expense amount.';
+            errorBox.classList.remove('hidden');
+            return;
+          }
         }
         if (hasOtherMembers && (!otherMembers.length || otherMembers.some(member => isNaN(member.amount) || member.amount <= 0) || otherAmount > amount)) {
           errorBox.textContent = 'Enter a valid amount for each member; the total owed must be greater than 0 and no more than the expense amount.';
@@ -3829,16 +4054,18 @@
               otherMembers: hasOtherMembers ? otherMembers : undefined,
               otherNote: hasOtherMembers ? otherNote : '',
               otherBalanceId: otherBalanceId || undefined,
-              borrowedFrom: borrowedFrom || undefined,
-              borrowedAmount: type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? borrowedAmount : undefined,
+              borrowedFrom: recordBorrowedFrom || undefined,
+              borrowedAmount: recordBorrowedAmount > 0 ? recordBorrowedAmount : undefined,
               supplementalFundSource: supplementalFundSource || undefined,
               supplementalAmount: supplementalFundSource ? supplementalAmount : undefined,
+              supplementalBalanceId: supplementalBalanceId || undefined,
               expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
               checklistItemId,
               updatedAt: new Date().toISOString()
             };
             updateBalanceForTransactionEdit(previousRecord, transactions[idx]);
             updateBorrowForTransactionEdit(previousRecord, transactions[idx]);
+            updateSupplementalDeductionForEdit(previousRecord, transactions[idx]);
             saveOtherBalancesToStorage();
             showToast('Transaction updated');
           }
@@ -3856,10 +4083,11 @@
             otherMembers: hasOtherMembers ? otherMembers : undefined,
             otherNote: hasOtherMembers ? otherNote : '',
             otherBalanceId: otherBalanceId || undefined,
-            borrowedFrom: borrowedFrom || undefined,
-            borrowedAmount: type === 'EXPENSE' && fundSource === 'OTHER_BALANCE' ? borrowedAmount : undefined,
+            borrowedFrom: recordBorrowedFrom || undefined,
+            borrowedAmount: recordBorrowedAmount > 0 ? recordBorrowedAmount : undefined,
             supplementalFundSource: supplementalFundSource || undefined,
             supplementalAmount: supplementalFundSource ? supplementalAmount : undefined,
+            supplementalBalanceId: supplementalBalanceId || undefined,
             expectedDate: type === 'PLANNED_SAVING' ? expectedDate : '',
             checklistItemId,
             updatedAt: new Date().toISOString()
@@ -3867,6 +4095,7 @@
           transactions.push(newRecord);
           applyBalanceAddition(newRecord);
           applyBorrowFromBalance(newRecord);
+          applySupplementalDeduction(newRecord);
           saveOtherBalancesToStorage();
           showToast('Transaction added');
         }
@@ -3963,6 +4192,31 @@
             renderOtherBalances();
             showToast('Balance removed');
           });
+          return;
+        }
+        const auditBtn = e.target.closest('[data-audit-clear]');
+        if (auditBtn) {
+          const entry = otherBalances.find(b => b.id === auditBtn.dataset.auditClear);
+          const idx = Number(auditBtn.dataset.auditIndex);
+          if (!entry || !Array.isArray(entry.audit) || !Number.isInteger(idx) || idx < 0 || idx >= entry.audit.length) return;
+          openCustomConfirm('Remove Audit Entry', `Remove this audit entry from "${entry.name}"?`, () => {
+            entry.audit.splice(idx, 1);
+            saveOtherBalancesToStorage();
+            renderOtherBalances();
+            showToast('Audit entry removed');
+          });
+          return;
+        }
+        const auditAllBtn = e.target.closest('[data-audit-clear-all]');
+        if (auditAllBtn) {
+          const entry = otherBalances.find(b => b.id === auditAllBtn.dataset.auditClearAll);
+          if (!entry || !Array.isArray(entry.audit) || !entry.audit.length) return;
+          openCustomConfirm('Clear Audit History', `Clear all audit history for "${entry.name}"? Balance amounts are unaffected.`, () => {
+            entry.audit = [];
+            saveOtherBalancesToStorage();
+            renderOtherBalances();
+            showToast('Audit history cleared');
+          });
         }
       });
       document.querySelectorAll('input[name="transType"]').forEach(radio => {
@@ -3971,6 +4225,16 @@
       document.getElementById('formFundSource').addEventListener('change', updateFundSourceFields);
       document.getElementById('formAmount').addEventListener('input', updateFundSourceFields);
       document.getElementById('formSupplementalAmount').addEventListener('input', updateFundSourceFields);
+      document.getElementById('formSupplementalFundSource').addEventListener('change', () => {
+        renderSupplementalBalanceOptions();
+        updateFundSourceFields();
+      });
+      document.getElementById('formDate').addEventListener('change', () => {
+        if (!document.getElementById('supplementalBalanceField').classList.contains('hidden')) {
+          renderSupplementalBalanceOptions();
+        }
+        updateFundSourceFields();
+      });
 
       const borrowedDetailsModal = document.getElementById('borrowedDetailsModal');
       const closeBorrowedDetails = () => borrowedDetailsModal.classList.add('hidden');
